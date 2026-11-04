@@ -48,6 +48,19 @@ crate-type = ['cdylib', 'rlib']
 [features]
 default = ['server']
 server = ['dep:clap', 'dep:surrealdb', 'dep:tower-lsp-server', 'dep:walkdir']
+# Browser dependencies are optional so a native analyzer build does not force
+# their exact js-sys pin onto a workspace that already uses a newer one.
+# `scripts/build-wasm.sh` enables this feature.
+wasm = [
+    'dep:console_error_panic_hook',
+    'dep:js-sys',
+    'dep:parking_lot',
+    'dep:send_wrapper',
+    'dep:serde-wasm-bindgen',
+    'dep:tokio_with_wasm',
+    'dep:wasm-bindgen',
+    'dep:wasm-bindgen-futures',
+]
 
 # Dependencies shared by both the native binary and the WASM module. Keep
 # this list strictly target-agnostic — anything that pulls in tokio,
@@ -80,14 +93,14 @@ walkdir = { version = '2.5.0', optional = true }
 # `js_sys::Function` callbacks (sound on wasm because there is only one
 # thread).
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-console_error_panic_hook = '0.1'
-js-sys = '0.3'
-parking_lot = '0.12'
-send_wrapper = '0.6'
-serde-wasm-bindgen = '0.6'
-tokio_with_wasm = { version = '0.9', features = ['macros', 'rt', 'sync', 'time'] }
-wasm-bindgen = '=0.2.108'
-wasm-bindgen-futures = '=0.4.58'
+console_error_panic_hook = { version = '0.1', optional = true }
+js-sys = { version = '0.3', optional = true }
+parking_lot = { version = '0.12', optional = true }
+send_wrapper = { version = '0.6', optional = true }
+serde-wasm-bindgen = { version = '0.6', optional = true }
+tokio_with_wasm = { version = '0.9', features = ['macros', 'rt', 'sync', 'time'], optional = true }
+wasm-bindgen = { version = '=0.2.108', optional = true }
+wasm-bindgen-futures = { version = '=0.4.58', optional = true }
 
 [build-dependencies]
 cc = '1.2.56'

@@ -52,7 +52,7 @@ if [ -z "${CC_wasm32_unknown_unknown:-}" ]; then
 fi
 
 echo "Building the WASM module"
-cargo build --release --target wasm32-unknown-unknown --no-default-features
+cargo build --release --target wasm32-unknown-unknown --no-default-features --features wasm
 
 echo "Generating wasm-bindgen bindings"
 wasm-bindgen --target web \

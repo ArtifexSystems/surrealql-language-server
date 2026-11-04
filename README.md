@@ -63,9 +63,10 @@ cargo add surrealql-language-server --no-default-features
 ```
 
 `tokio` stays in that build: the portable core uses it. `surrealdb`, `clap`,
-`tower-lsp-server` and `walkdir` do not. Building the binaries without
-`server` produces a program that exits immediately and says the feature is
-required.
+`tower-lsp-server` and `walkdir` do not. The browser crates are feature
+`wasm`, which `scripts/build-wasm.sh` turns on, so they are not in this
+build either. Building the binaries without `server` produces a program that
+exits immediately and says the feature is required.
 
 The build also produces `target/release/surrealql-language-server`, the same
 program under the name the editor extensions look for. Both serve the LSP over

@@ -29,5 +29,5 @@ pub mod semantic;
 #[cfg(all(not(target_arch = "wasm32"), feature = "server"))]
 pub mod native;
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(all(target_arch = "wasm32", feature = "wasm"))]
 pub mod wasm;
