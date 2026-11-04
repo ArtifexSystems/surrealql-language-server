@@ -145,14 +145,22 @@ fn git(dir: &Path, args: &[&str]) -> Option<String> {
 }
 
 fn grammar_dir(manifest_dir: &Path) -> PathBuf {
-    let configured = env::var_os("TREE_SITTER_SURREALQL_DIR")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| manifest_dir.join("../surrealql-tree-sitter"));
-
-    if configured.is_absolute() {
-        configured
+    if let Some(configured) = env::var_os("TREE_SITTER_SURREALQL_DIR") {
+        let configured = PathBuf::from(configured);
+        return if configured.is_absolute() {
+            configured
+        } else {
+            manifest_dir.join(configured)
+        };
+    }
+    // A checkout beside this crate is the language-server development layout.
+    // A library build from git has no sibling, so the pinned grammar shipped
+    // in `vendor/surrealql-tree-sitter` is the fallback.
+    let sibling = manifest_dir.join("../surrealql-tree-sitter");
+    if sibling.join("src/parser.c").is_file() {
+        sibling
     } else {
-        manifest_dir.join(configured)
+        manifest_dir.join("vendor/surrealql-tree-sitter")
     }
 }
 
