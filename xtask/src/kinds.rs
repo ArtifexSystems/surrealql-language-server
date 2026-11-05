@@ -46,6 +46,8 @@ const CONTEXT_TYPES: &[&str] = &[
     "CursorDoc",
     "QueryExecutor",
     "Context",
+    // A closure runner the engine passes beside the author's arguments.
+    "ClosureEvaluator",
 ];
 
 /// True when this tuple element is engine-injected rather than author-supplied.

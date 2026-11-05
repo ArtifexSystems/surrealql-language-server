@@ -172,10 +172,20 @@ fn verify_returns(_surrealdb: &Path) -> Result<String, String> {
 /// Read the engine's tables and join them, with the coverage gates applied.
 fn build_catalogue(surrealdb: &Path) -> Result<emit::Catalogue, String> {
     let core = surrealdb.join("surrealdb/core/src");
-    let builtin_rs = core.join("syn/parser/builtin.rs");
+    // SurrealDB 4 moved PATHS out of the parser into the expression crate.
+    // A 3.x checkout still has the old file.
+    let builtin_rs = {
+        let moved = surrealdb.join("surrealdb/expr/src/expr/builtin_paths.rs");
+        if moved.exists() {
+            moved
+        } else {
+            core.join("syn/parser/builtin.rs")
+        }
+    };
     let fnc_dir = core.join("fnc");
     let fnc_mod_rs = fnc_dir.join("mod.rs");
     let registry_dir = core.join("exec/function/builtin");
+    let runtime_dir = surrealdb.join("surrealdb/runtime/src");
 
     for path in [&builtin_rs, &fnc_mod_rs, &registry_dir] {
         if !path.exists() {
@@ -189,7 +199,15 @@ fn build_catalogue(surrealdb: &Path) -> Result<emit::Catalogue, String> {
 
     let paths = engine_tables::parse_paths(&builtin_rs)?;
     let dispatch = engine_tables::parse_dispatch(&fnc_mod_rs)?;
-    let implementations = signatures::collect(&fnc_dir)?;
+    let mut implementations = signatures::collect(&fnc_dir)?;
+    // The pure families (`math`, `string`, `array`, …) are implemented in
+    // `surrealdb_runtime` and only re-exported from `fnc/`. Their signatures
+    // overwrite a core stub of the same path.
+    if runtime_dir.is_dir() {
+        for (path, implementation) in signatures::collect(&runtime_dir)? {
+            implementations.insert(path, implementation);
+        }
+    }
     let declared_returns = returns::collect(&registry_dir)?;
     let namespaces = engine_tables::namespaces(&paths);
     let revision = git_revision(surrealdb).unwrap_or_else(|| "unknown".to_string());

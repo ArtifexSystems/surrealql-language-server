@@ -125,6 +125,15 @@ pub fn resolve(ty: &TypeExpr, name: &str) -> Option<&'static GeneratedMethod> {
         methods_for(kind)
             .iter()
             .find(|method| method.method == name)
+            .or_else(|| {
+                // SurrealDB 4 keeps the methods every value accepts on the
+                // generic table. A type-specific arm still wins when both exist.
+                if kind.is_empty() {
+                    None
+                } else {
+                    methods_for("").iter().find(|method| method.method == name)
+                }
+            })
     })
 }
 
@@ -248,9 +257,15 @@ mod tests {
             resolve(&string, "is_datetime").map(|found| found.function),
             Some("string::is_datetime")
         );
-        // Absent from `String`, present everywhere else.
-        assert!(resolve(&string, "is_set").is_none());
-        assert!(resolve(&scalar("int"), "is_set").is_some());
+        // SurrealDB 4 registers `is_set` for every value, including a string.
+        assert_eq!(
+            resolve(&string, "is_set").map(|found| found.function),
+            Some("type::is_set")
+        );
+        assert_eq!(
+            resolve(&scalar("int"), "is_set").map(|found| found.function),
+            Some("type::is_set")
+        );
     }
 
     #[test]
@@ -333,9 +348,10 @@ mod tests {
 
     #[test]
     fn a_file_method_is_marked_experimental() {
+        // SurrealDB 4's method registry no longer marks `file::get` experimental.
         let file = resolve(&scalar("file"), "get").expect("file::get");
-        assert_eq!(file.experimental, Some("Files"));
-        // And nothing else is.
+        assert_eq!(file.function, "file::get");
+        assert_eq!(file.experimental, None);
         let string = resolve(&scalar("string"), "len").expect("string::len");
         assert_eq!(string.experimental, None);
     }

@@ -2,7 +2,7 @@
   "meta": {
     "schemaVersion": 1,
     "languageServerVersion": "0.6.3",
-    "surrealdbRevision": "9d9a5b069",
+    "surrealdbRevision": "284fe93af",
     "generatedBy": "cargo xtask generate-builtins"
   },
   "functions": [
@@ -22,6 +22,13 @@
     },
     {
       "name": "api::req::body",
+      "params": null,
+      "isAsync": true,
+      "notCallable": false,
+      "returns": "any"
+    },
+    {
+      "name": "api::req::max_body",
       "params": null,
       "isAsync": true,
       "notCallable": false,
@@ -59,12 +66,12 @@
       "name": "array::add",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array",
           "form": "required"
         },
         {
-          "name": "value",
+          "name": "arg2",
           "type": "any",
           "form": "required"
         }
@@ -149,12 +156,12 @@
       "name": "array::boolean_and",
       "params": [
         {
-          "name": "lh",
+          "name": "arg1",
           "type": "array",
           "form": "required"
         },
         {
-          "name": "rh",
+          "name": "arg2",
           "type": "array",
           "form": "required"
         }
@@ -167,7 +174,7 @@
       "name": "array::boolean_not",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array",
           "form": "required"
         }
@@ -180,12 +187,12 @@
       "name": "array::boolean_or",
       "params": [
         {
-          "name": "lh",
+          "name": "arg1",
           "type": "array",
           "form": "required"
         },
         {
-          "name": "rh",
+          "name": "arg2",
           "type": "array",
           "form": "required"
         }
@@ -198,12 +205,12 @@
       "name": "array::boolean_xor",
       "params": [
         {
-          "name": "lh",
+          "name": "arg1",
           "type": "array",
           "form": "required"
         },
         {
-          "name": "rh",
+          "name": "arg2",
           "type": "array",
           "form": "required"
         }
@@ -216,12 +223,12 @@
       "name": "array::clump",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array",
           "form": "required"
         },
         {
-          "name": "clump_size",
+          "name": "arg2",
           "type": "int",
           "form": "required"
         }
@@ -234,12 +241,12 @@
       "name": "array::combine",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array",
           "form": "required"
         },
         {
-          "name": "other",
+          "name": "arg2",
           "type": "array",
           "form": "required"
         }
@@ -252,12 +259,12 @@
       "name": "array::complement",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array",
           "form": "required"
         },
         {
-          "name": "other",
+          "name": "arg2",
           "type": "array",
           "form": "required"
         }
@@ -270,7 +277,7 @@
       "name": "array::concat",
       "params": [
         {
-          "name": "arrays",
+          "name": "value",
           "type": "array",
           "form": "variadic"
         }
@@ -283,12 +290,12 @@
       "name": "array::difference",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array",
           "form": "required"
         },
         {
-          "name": "other",
+          "name": "arg2",
           "type": "array",
           "form": "required"
         }
@@ -301,7 +308,7 @@
       "name": "array::distinct",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array",
           "form": "required"
         }
@@ -332,22 +339,22 @@
       "name": "array::fill",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array",
           "form": "required"
         },
         {
-          "name": "value",
+          "name": "arg2",
           "type": "any",
           "form": "required"
         },
         {
-          "name": "range_start",
+          "name": "arg3",
           "type": "any",
           "form": "optional"
         },
         {
-          "name": "end",
+          "name": "arg4",
           "type": "int",
           "form": "optional"
         }
@@ -468,7 +475,7 @@
       "name": "array::flatten",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array",
           "form": "required"
         }
@@ -481,7 +488,7 @@
       "name": "array::group",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array",
           "form": "required"
         }
@@ -553,12 +560,12 @@
       "name": "array::intersect",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array",
           "form": "required"
         },
         {
-          "name": "other",
+          "name": "arg2",
           "type": "array",
           "form": "required"
         }
@@ -584,12 +591,12 @@
       "name": "array::join",
       "params": [
         {
-          "name": "arr",
+          "name": "arg1",
           "type": "array",
           "form": "required"
         },
         {
-          "name": "sep",
+          "name": "arg2",
           "type": "string",
           "form": "required"
         }
@@ -628,12 +635,12 @@
       "name": "array::logical_and",
       "params": [
         {
-          "name": "lh",
+          "name": "arg1",
           "type": "array",
           "form": "required"
         },
         {
-          "name": "rh",
+          "name": "arg2",
           "type": "array",
           "form": "required"
         }
@@ -646,12 +653,12 @@
       "name": "array::logical_or",
       "params": [
         {
-          "name": "lh",
+          "name": "arg1",
           "type": "array",
           "form": "required"
         },
         {
-          "name": "rh",
+          "name": "arg2",
           "type": "array",
           "form": "required"
         }
@@ -664,12 +671,12 @@
       "name": "array::logical_xor",
       "params": [
         {
-          "name": "lh",
+          "name": "arg1",
           "type": "array",
           "form": "required"
         },
         {
-          "name": "rh",
+          "name": "arg2",
           "type": "array",
           "form": "required"
         }
@@ -700,12 +707,12 @@
       "name": "array::matches",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array",
           "form": "required"
         },
         {
-          "name": "compare_val",
+          "name": "arg2",
           "type": "any",
           "form": "required"
         }
@@ -718,7 +725,7 @@
       "name": "array::max",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array",
           "form": "required"
         }
@@ -731,7 +738,7 @@
       "name": "array::min",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array",
           "form": "required"
         }
@@ -793,12 +800,12 @@
       "name": "array::range",
       "params": [
         {
-          "name": "start_range",
+          "name": "arg1",
           "type": "any",
           "form": "required"
         },
         {
-          "name": "end",
+          "name": "arg2",
           "type": "int",
           "form": "optional"
         }
@@ -847,12 +854,12 @@
       "name": "array::repeat",
       "params": [
         {
-          "name": "value",
+          "name": "arg1",
           "type": "any",
           "form": "required"
         },
         {
-          "name": "count",
+          "name": "arg2",
           "type": "int",
           "form": "required"
         }
@@ -878,12 +885,12 @@
       "name": "array::sequence",
       "params": [
         {
-          "name": "offset_len",
+          "name": "arg1",
           "type": "int",
           "form": "required"
         },
         {
-          "name": "len",
+          "name": "arg2",
           "type": "int",
           "form": "optional"
         }
@@ -896,7 +903,7 @@
       "name": "array::shuffle",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array",
           "form": "required"
         }
@@ -950,12 +957,12 @@
       "name": "array::sort",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array",
           "form": "required"
         },
         {
-          "name": "order",
+          "name": "arg2",
           "type": "any",
           "form": "optional"
         }
@@ -968,12 +975,12 @@
       "name": "array::sort_natural",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array",
           "form": "required"
         },
         {
-          "name": "order",
+          "name": "arg2",
           "type": "any",
           "form": "optional"
         }
@@ -986,12 +993,12 @@
       "name": "array::sort_lexical",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array",
           "form": "required"
         },
         {
-          "name": "order",
+          "name": "arg2",
           "type": "any",
           "form": "optional"
         }
@@ -1004,12 +1011,12 @@
       "name": "array::sort_natural_lexical",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array",
           "form": "required"
         },
         {
-          "name": "order",
+          "name": "arg2",
           "type": "any",
           "form": "optional"
         }
@@ -1045,7 +1052,7 @@
       "name": "array::transpose",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array",
           "form": "required"
         }
@@ -1058,12 +1065,12 @@
       "name": "array::union",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array",
           "form": "required"
         },
         {
-          "name": "other",
+          "name": "arg2",
           "type": "array",
           "form": "required"
         }
@@ -1076,12 +1083,12 @@
       "name": "array::windows",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array",
           "form": "required"
         },
         {
-          "name": "window_size",
+          "name": "arg2",
           "type": "int",
           "form": "required"
         }
@@ -1094,7 +1101,7 @@
       "name": "array::sort::asc",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array",
           "form": "required"
         }
@@ -1107,7 +1114,7 @@
       "name": "array::sort::desc",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array",
           "form": "required"
         }
@@ -1345,6 +1352,317 @@
       "returns": "string"
     },
     {
+      "name": "interval::days",
+      "params": [
+        {
+          "name": "v",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "int"
+    },
+    {
+      "name": "interval::hours",
+      "params": [
+        {
+          "name": "v",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "int"
+    },
+    {
+      "name": "interval::justify_days",
+      "params": [
+        {
+          "name": "v",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "any"
+    },
+    {
+      "name": "interval::justify_hours",
+      "params": [
+        {
+          "name": "v",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "any"
+    },
+    {
+      "name": "interval::justify_interval",
+      "params": [
+        {
+          "name": "v",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "any"
+    },
+    {
+      "name": "interval::make",
+      "params": [
+        {
+          "name": "years",
+          "type": "number",
+          "form": "optional"
+        },
+        {
+          "name": "months",
+          "type": "number",
+          "form": "optional"
+        },
+        {
+          "name": "weeks",
+          "type": "number",
+          "form": "optional"
+        },
+        {
+          "name": "days",
+          "type": "number",
+          "form": "optional"
+        },
+        {
+          "name": "hours",
+          "type": "number",
+          "form": "optional"
+        },
+        {
+          "name": "mins",
+          "type": "number",
+          "form": "optional"
+        },
+        {
+          "name": "secs",
+          "type": "number",
+          "form": "optional"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "any"
+    },
+    {
+      "name": "interval::micros",
+      "params": [
+        {
+          "name": "v",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "int"
+    },
+    {
+      "name": "interval::mins",
+      "params": [
+        {
+          "name": "v",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "int"
+    },
+    {
+      "name": "interval::months",
+      "params": [
+        {
+          "name": "v",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "int"
+    },
+    {
+      "name": "interval::secs",
+      "params": [
+        {
+          "name": "v",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "decimal"
+    },
+    {
+      "name": "interval::years",
+      "params": [
+        {
+          "name": "v",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "int"
+    },
+    {
+      "name": "time::age",
+      "params": [
+        {
+          "name": "a",
+          "type": "any",
+          "form": "required"
+        },
+        {
+          "name": "b",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "any"
+    },
+    {
+      "name": "time::extract",
+      "params": [
+        {
+          "name": "val",
+          "type": "any",
+          "form": "required"
+        },
+        {
+          "name": "field",
+          "type": "string",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "number"
+    },
+    {
+      "name": "time::make_date",
+      "params": [
+        {
+          "name": "year",
+          "type": "number",
+          "form": "required"
+        },
+        {
+          "name": "month",
+          "type": "number",
+          "form": "required"
+        },
+        {
+          "name": "day",
+          "type": "number",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "any"
+    },
+    {
+      "name": "time::make_time",
+      "params": [
+        {
+          "name": "hour",
+          "type": "number",
+          "form": "required"
+        },
+        {
+          "name": "min",
+          "type": "number",
+          "form": "required"
+        },
+        {
+          "name": "sec",
+          "type": "number",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "any"
+    },
+    {
+      "name": "time::make_timestamp",
+      "params": [
+        {
+          "name": "year",
+          "type": "number",
+          "form": "required"
+        },
+        {
+          "name": "month",
+          "type": "number",
+          "form": "required"
+        },
+        {
+          "name": "day",
+          "type": "number",
+          "form": "required"
+        },
+        {
+          "name": "hour",
+          "type": "number",
+          "form": "required"
+        },
+        {
+          "name": "min",
+          "type": "number",
+          "form": "required"
+        },
+        {
+          "name": "sec",
+          "type": "number",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "any"
+    },
+    {
+      "name": "time::trunc",
+      "params": [
+        {
+          "name": "val",
+          "type": "any",
+          "form": "required"
+        },
+        {
+          "name": "unit",
+          "type": "string",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "any"
+    },
+    {
       "name": "duration::days",
       "params": [
         {
@@ -1566,55 +1884,6 @@
       "returns": "duration"
     },
     {
-      "name": "duration::set_year",
-      "params": null,
-      "isAsync": false,
-      "notCallable": true,
-      "returns": "any"
-    },
-    {
-      "name": "duration::set_month",
-      "params": null,
-      "isAsync": false,
-      "notCallable": true,
-      "returns": "any"
-    },
-    {
-      "name": "duration::set_day",
-      "params": null,
-      "isAsync": false,
-      "notCallable": true,
-      "returns": "any"
-    },
-    {
-      "name": "duration::set_hour",
-      "params": null,
-      "isAsync": false,
-      "notCallable": true,
-      "returns": "any"
-    },
-    {
-      "name": "duration::set_minute",
-      "params": null,
-      "isAsync": false,
-      "notCallable": true,
-      "returns": "any"
-    },
-    {
-      "name": "duration::set_second",
-      "params": null,
-      "isAsync": false,
-      "notCallable": true,
-      "returns": "any"
-    },
-    {
-      "name": "duration::set_nanosecond",
-      "params": null,
-      "isAsync": false,
-      "notCallable": true,
-      "returns": "any"
-    },
-    {
       "name": "encoding::base64::decode",
       "params": [
         {
@@ -1771,6 +2040,11 @@
           "name": "value",
           "type": "any",
           "form": "required"
+        },
+        {
+          "name": "opts",
+          "type": "object",
+          "form": "optional"
         }
       ],
       "isAsync": true,
@@ -1789,6 +2063,11 @@
           "name": "value",
           "type": "any",
           "form": "required"
+        },
+        {
+          "name": "opts",
+          "type": "object",
+          "form": "optional"
         }
       ],
       "isAsync": true,
@@ -1925,6 +2204,42 @@
         {
           "name": "bucket",
           "type": "string",
+          "form": "required"
+        },
+        {
+          "name": "opts",
+          "type": "object",
+          "form": "optional"
+        }
+      ],
+      "isAsync": true,
+      "notCallable": false,
+      "returns": "any"
+    },
+    {
+      "name": "file::presign_get",
+      "params": [
+        {
+          "name": "file",
+          "type": "file",
+          "form": "required"
+        },
+        {
+          "name": "opts",
+          "type": "object",
+          "form": "optional"
+        }
+      ],
+      "isAsync": true,
+      "notCallable": false,
+      "returns": "any"
+    },
+    {
+      "name": "file::presign_put",
+      "params": [
+        {
+          "name": "file",
+          "type": "file",
           "form": "required"
         },
         {
@@ -2235,12 +2550,12 @@
       "name": "math::bottom",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array<number>",
           "form": "required"
         },
         {
-          "name": "c",
+          "name": "arg2",
           "type": "int",
           "form": "required"
         }
@@ -2359,7 +2674,7 @@
       "name": "math::interquartile",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array<number>",
           "form": "required"
         }
@@ -2475,7 +2790,7 @@
       "name": "math::max",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array<number>",
           "form": "required"
         }
@@ -2488,7 +2803,7 @@
       "name": "math::mean",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array<number>",
           "form": "required"
         }
@@ -2501,7 +2816,7 @@
       "name": "math::median",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array<number>",
           "form": "required"
         }
@@ -2514,7 +2829,7 @@
       "name": "math::midhinge",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array<number>",
           "form": "required"
         }
@@ -2527,7 +2842,7 @@
       "name": "math::min",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array<number>",
           "form": "required"
         }
@@ -2540,7 +2855,7 @@
       "name": "math::mode",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array<number>",
           "form": "required"
         }
@@ -2553,12 +2868,12 @@
       "name": "math::nearestrank",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array<number>",
           "form": "required"
         },
         {
-          "name": "n",
+          "name": "arg2",
           "type": "number",
           "form": "required"
         }
@@ -2571,12 +2886,12 @@
       "name": "math::percentile",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array<number>",
           "form": "required"
         },
         {
-          "name": "n",
+          "name": "arg2",
           "type": "number",
           "form": "required"
         }
@@ -2607,7 +2922,7 @@
       "name": "math::product",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array<number>",
           "form": "required"
         }
@@ -2672,7 +2987,7 @@
       "name": "math::spread",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array<number>",
           "form": "required"
         }
@@ -2698,7 +3013,7 @@
       "name": "math::stddev",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array<number>",
           "form": "required"
         }
@@ -2711,7 +3026,7 @@
       "name": "math::sum",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array<number>",
           "form": "required"
         }
@@ -2737,12 +3052,12 @@
       "name": "math::top",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array<number>",
           "form": "required"
         },
         {
-          "name": "c",
+          "name": "arg2",
           "type": "int",
           "form": "required"
         }
@@ -2755,7 +3070,7 @@
       "name": "math::trimean",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array<number>",
           "form": "required"
         }
@@ -2768,7 +3083,7 @@
       "name": "math::variance",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array<number>",
           "form": "required"
         }
@@ -2820,7 +3135,7 @@
       "name": "object::entries",
       "params": [
         {
-          "name": "object",
+          "name": "arg1",
           "type": "object",
           "form": "required"
         }
@@ -2833,12 +3148,12 @@
       "name": "object::extend",
       "params": [
         {
-          "name": "object",
+          "name": "arg1",
           "type": "object",
           "form": "required"
         },
         {
-          "name": "other",
+          "name": "arg2",
           "type": "object",
           "form": "required"
         }
@@ -2851,7 +3166,7 @@
       "name": "object::from_entries",
       "params": [
         {
-          "name": "array",
+          "name": "arg1",
           "type": "array",
           "form": "required"
         }
@@ -2877,7 +3192,7 @@
       "name": "object::keys",
       "params": [
         {
-          "name": "object",
+          "name": "arg1",
           "type": "object",
           "form": "required"
         }
@@ -2900,22 +3215,15 @@
       "returns": "int"
     },
     {
-      "name": "object::matches",
-      "params": null,
-      "isAsync": false,
-      "notCallable": true,
-      "returns": "any"
-    },
-    {
       "name": "object::remove",
       "params": [
         {
-          "name": "object",
+          "name": "arg1",
           "type": "object",
           "form": "required"
         },
         {
-          "name": "targets",
+          "name": "arg2",
           "type": "any",
           "form": "required"
         }
@@ -2928,7 +3236,7 @@
       "name": "object::values",
       "params": [
         {
-          "name": "object",
+          "name": "arg1",
           "type": "object",
           "form": "required"
         }
@@ -3206,7 +3514,7 @@
       "name": "record::exists",
       "params": [
         {
-          "name": "arg",
+          "name": "rid",
           "type": "record",
           "form": "required"
         }
@@ -3340,7 +3648,7 @@
       "name": "search::score",
       "params": [
         {
-          "name": "match_ref",
+          "name": "_match_ref",
           "type": "any",
           "form": "required"
         }
@@ -3353,22 +3661,22 @@
       "name": "search::highlight",
       "params": [
         {
-          "name": "prefix",
+          "name": "_prefix",
           "type": "any",
           "form": "required"
         },
         {
-          "name": "suffix",
+          "name": "_suffix",
           "type": "any",
           "form": "required"
         },
         {
-          "name": "match_ref",
+          "name": "_match_ref",
           "type": "any",
           "form": "required"
         },
         {
-          "name": "partial",
+          "name": "_partial",
           "type": "bool",
           "form": "optional"
         }
@@ -3381,12 +3689,12 @@
       "name": "search::offsets",
       "params": [
         {
-          "name": "match_ref",
+          "name": "_match_ref",
           "type": "any",
           "form": "required"
         },
         {
-          "name": "partial",
+          "name": "_partial",
           "type": "bool",
           "form": "optional"
         }
@@ -3399,12 +3707,12 @@
       "name": "set::add",
       "params": [
         {
-          "name": "set",
+          "name": "arg1",
           "type": "set",
           "form": "required"
         },
         {
-          "name": "value",
+          "name": "arg2",
           "type": "any",
           "form": "required"
         }
@@ -3453,12 +3761,12 @@
       "name": "set::at",
       "params": [
         {
-          "name": "set",
+          "name": "arg1",
           "type": "set",
           "form": "required"
         },
         {
-          "name": "i",
+          "name": "arg2",
           "type": "int",
           "form": "required"
         }
@@ -3471,12 +3779,12 @@
       "name": "set::complement",
       "params": [
         {
-          "name": "set1",
+          "name": "arg1",
           "type": "set",
           "form": "required"
         },
         {
-          "name": "set2",
+          "name": "arg2",
           "type": "set",
           "form": "required"
         }
@@ -3507,12 +3815,12 @@
       "name": "set::difference",
       "params": [
         {
-          "name": "set1",
+          "name": "arg1",
           "type": "set",
           "form": "required"
         },
         {
-          "name": "set2",
+          "name": "arg2",
           "type": "set",
           "form": "required"
         }
@@ -3574,7 +3882,7 @@
       "name": "set::flatten",
       "params": [
         {
-          "name": "set",
+          "name": "arg1",
           "type": "set",
           "form": "required"
         }
@@ -3610,12 +3918,12 @@
       "name": "set::intersect",
       "params": [
         {
-          "name": "set1",
+          "name": "arg1",
           "type": "set",
           "form": "required"
         },
         {
-          "name": "set2",
+          "name": "arg2",
           "type": "set",
           "form": "required"
         }
@@ -3641,12 +3949,12 @@
       "name": "set::join",
       "params": [
         {
-          "name": "set",
+          "name": "arg1",
           "type": "set",
           "form": "required"
         },
         {
-          "name": "sep",
+          "name": "arg2",
           "type": "string",
           "form": "required"
         }
@@ -3703,7 +4011,7 @@
       "name": "set::max",
       "params": [
         {
-          "name": "set",
+          "name": "arg1",
           "type": "set",
           "form": "required"
         }
@@ -3716,7 +4024,7 @@
       "name": "set::min",
       "params": [
         {
-          "name": "set",
+          "name": "arg1",
           "type": "set",
           "form": "required"
         }
@@ -3747,12 +4055,12 @@
       "name": "set::remove",
       "params": [
         {
-          "name": "set",
+          "name": "arg1",
           "type": "set",
           "form": "required"
         },
         {
-          "name": "value",
+          "name": "arg2",
           "type": "any",
           "form": "required"
         }
@@ -3765,17 +4073,17 @@
       "name": "set::slice",
       "params": [
         {
-          "name": "set",
+          "name": "arg1",
           "type": "set",
           "form": "required"
         },
         {
-          "name": "range_start",
+          "name": "arg2",
           "type": "any",
           "form": "optional"
         },
         {
-          "name": "end",
+          "name": "arg3",
           "type": "int",
           "form": "optional"
         }
@@ -3788,12 +4096,12 @@
       "name": "set::union",
       "params": [
         {
-          "name": "set1",
+          "name": "arg1",
           "type": "set",
           "form": "required"
         },
         {
-          "name": "set2",
+          "name": "arg2",
           "type": "set",
           "form": "required"
         }
@@ -3989,12 +4297,12 @@
       "name": "string::repeat",
       "params": [
         {
-          "name": "val",
+          "name": "arg1",
           "type": "string",
           "form": "required"
         },
         {
-          "name": "num",
+          "name": "arg2",
           "type": "int",
           "form": "required"
         }
@@ -4748,7 +5056,7 @@
       ],
       "isAsync": false,
       "notCallable": false,
-      "returns": "float"
+      "returns": "int"
     },
     {
       "name": "string::similarity::sorensen_dice",
@@ -4791,7 +5099,7 @@
       "params": [
         {
           "name": "val",
-          "type": "datetime",
+          "type": "any",
           "form": "required"
         },
         {
@@ -4802,14 +5110,14 @@
       ],
       "isAsync": false,
       "notCallable": false,
-      "returns": "datetime"
+      "returns": "any"
     },
     {
       "name": "time::day",
       "params": [
         {
-          "name": "val",
-          "type": "datetime",
+          "name": "arg1",
+          "type": "any",
           "form": "optional"
         }
       ],
@@ -4822,7 +5130,7 @@
       "params": [
         {
           "name": "val",
-          "type": "datetime",
+          "type": "any",
           "form": "required"
         },
         {
@@ -4833,14 +5141,14 @@
       ],
       "isAsync": false,
       "notCallable": false,
-      "returns": "datetime"
+      "returns": "any"
     },
     {
       "name": "time::format",
       "params": [
         {
           "name": "val",
-          "type": "datetime",
+          "type": "any",
           "form": "required"
         },
         {
@@ -4858,7 +5166,7 @@
       "params": [
         {
           "name": "val",
-          "type": "datetime",
+          "type": "any",
           "form": "required"
         },
         {
@@ -4869,14 +5177,14 @@
       ],
       "isAsync": false,
       "notCallable": false,
-      "returns": "datetime"
+      "returns": "any"
     },
     {
       "name": "time::hour",
       "params": [
         {
-          "name": "val",
-          "type": "datetime",
+          "name": "arg1",
+          "type": "any",
           "form": "optional"
         }
       ],
@@ -4889,20 +5197,20 @@
       "params": [
         {
           "name": "array",
-          "type": "array<datetime>",
+          "type": "any",
           "form": "required"
         }
       ],
       "isAsync": false,
       "notCallable": false,
-      "returns": "datetime"
+      "returns": "any"
     },
     {
       "name": "time::micros",
       "params": [
         {
-          "name": "val",
-          "type": "datetime",
+          "name": "arg1",
+          "type": "any",
           "form": "optional"
         }
       ],
@@ -4914,8 +5222,8 @@
       "name": "time::millis",
       "params": [
         {
-          "name": "val",
-          "type": "datetime",
+          "name": "arg1",
+          "type": "any",
           "form": "optional"
         }
       ],
@@ -4928,20 +5236,20 @@
       "params": [
         {
           "name": "array",
-          "type": "array<datetime>",
+          "type": "any",
           "form": "required"
         }
       ],
       "isAsync": false,
       "notCallable": false,
-      "returns": "datetime"
+      "returns": "any"
     },
     {
       "name": "time::minute",
       "params": [
         {
-          "name": "val",
-          "type": "datetime",
+          "name": "arg1",
+          "type": "any",
           "form": "optional"
         }
       ],
@@ -4953,8 +5261,8 @@
       "name": "time::month",
       "params": [
         {
-          "name": "val",
-          "type": "datetime",
+          "name": "arg1",
+          "type": "any",
           "form": "optional"
         }
       ],
@@ -4966,8 +5274,8 @@
       "name": "time::nano",
       "params": [
         {
-          "name": "val",
-          "type": "datetime",
+          "name": "arg1",
+          "type": "any",
           "form": "optional"
         }
       ],
@@ -4987,7 +5295,7 @@
       "params": [
         {
           "name": "val",
-          "type": "datetime",
+          "type": "any",
           "form": "required"
         },
         {
@@ -4998,14 +5306,14 @@
       ],
       "isAsync": false,
       "notCallable": false,
-      "returns": "datetime"
+      "returns": "any"
     },
     {
       "name": "time::second",
       "params": [
         {
-          "name": "val",
-          "type": "datetime",
+          "name": "arg1",
+          "type": "any",
           "form": "optional"
         }
       ],
@@ -5037,8 +5345,8 @@
       "name": "time::wday",
       "params": [
         {
-          "name": "val",
-          "type": "datetime",
+          "name": "arg1",
+          "type": "any",
           "form": "optional"
         }
       ],
@@ -5050,8 +5358,8 @@
       "name": "time::week",
       "params": [
         {
-          "name": "val",
-          "type": "datetime",
+          "name": "arg1",
+          "type": "any",
           "form": "optional"
         }
       ],
@@ -5063,8 +5371,8 @@
       "name": "time::yday",
       "params": [
         {
-          "name": "val",
-          "type": "datetime",
+          "name": "arg1",
+          "type": "any",
           "form": "optional"
         }
       ],
@@ -5076,8 +5384,8 @@
       "name": "time::year",
       "params": [
         {
-          "name": "val",
-          "type": "datetime",
+          "name": "arg1",
+          "type": "any",
           "form": "optional"
         }
       ],
@@ -5181,7 +5489,7 @@
       "params": [
         {
           "name": "val",
-          "type": "datetime",
+          "type": "any",
           "form": "optional"
         }
       ],
@@ -5193,127 +5501,127 @@
       "name": "time::set_year",
       "params": [
         {
-          "name": "dt",
-          "type": "datetime",
+          "name": "arg1",
+          "type": "any",
           "form": "required"
         },
         {
-          "name": "year",
+          "name": "arg2",
           "type": "number",
           "form": "required"
         }
       ],
       "isAsync": false,
       "notCallable": false,
-      "returns": "datetime"
+      "returns": "any"
     },
     {
       "name": "time::set_month",
       "params": [
         {
-          "name": "dt",
-          "type": "datetime",
+          "name": "arg1",
+          "type": "any",
           "form": "required"
         },
         {
-          "name": "month",
+          "name": "arg2",
           "type": "number",
           "form": "required"
         }
       ],
       "isAsync": false,
       "notCallable": false,
-      "returns": "datetime"
+      "returns": "any"
     },
     {
       "name": "time::set_day",
       "params": [
         {
-          "name": "dt",
-          "type": "datetime",
+          "name": "arg1",
+          "type": "any",
           "form": "required"
         },
         {
-          "name": "day",
+          "name": "arg2",
           "type": "number",
           "form": "required"
         }
       ],
       "isAsync": false,
       "notCallable": false,
-      "returns": "datetime"
+      "returns": "any"
     },
     {
       "name": "time::set_hour",
       "params": [
         {
-          "name": "dt",
-          "type": "datetime",
+          "name": "arg1",
+          "type": "any",
           "form": "required"
         },
         {
-          "name": "hour",
+          "name": "arg2",
           "type": "number",
           "form": "required"
         }
       ],
       "isAsync": false,
       "notCallable": false,
-      "returns": "datetime"
+      "returns": "any"
     },
     {
       "name": "time::set_minute",
       "params": [
         {
-          "name": "dt",
-          "type": "datetime",
+          "name": "arg1",
+          "type": "any",
           "form": "required"
         },
         {
-          "name": "minute",
+          "name": "arg2",
           "type": "number",
           "form": "required"
         }
       ],
       "isAsync": false,
       "notCallable": false,
-      "returns": "datetime"
+      "returns": "any"
     },
     {
       "name": "time::set_second",
       "params": [
         {
-          "name": "dt",
-          "type": "datetime",
+          "name": "arg1",
+          "type": "any",
           "form": "required"
         },
         {
-          "name": "second",
+          "name": "arg2",
           "type": "number",
           "form": "required"
         }
       ],
       "isAsync": false,
       "notCallable": false,
-      "returns": "datetime"
+      "returns": "any"
     },
     {
       "name": "time::set_nanosecond",
       "params": [
         {
-          "name": "dt",
-          "type": "datetime",
+          "name": "arg1",
+          "type": "any",
           "form": "required"
         },
         {
-          "name": "nanos",
+          "name": "arg2",
           "type": "number",
           "form": "required"
         }
       ],
       "isAsync": false,
       "notCallable": false,
-      "returns": "datetime"
+      "returns": "any"
     },
     {
       "name": "type::array",
@@ -5355,6 +5663,58 @@
       "returns": "bytes"
     },
     {
+      "name": "type::date",
+      "params": [
+        {
+          "name": "val",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "any"
+    },
+    {
+      "name": "type::time",
+      "params": [
+        {
+          "name": "val",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "any"
+    },
+    {
+      "name": "type::timestamp",
+      "params": [
+        {
+          "name": "val",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "any"
+    },
+    {
+      "name": "type::interval",
+      "params": [
+        {
+          "name": "val",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "any"
+    },
+    {
       "name": "type::datetime",
       "params": [
         {
@@ -5392,6 +5752,32 @@
       "isAsync": false,
       "notCallable": false,
       "returns": "duration"
+    },
+    {
+      "name": "type::f16",
+      "params": [
+        {
+          "name": "val",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "any"
+    },
+    {
+      "name": "type::f32",
+      "params": [
+        {
+          "name": "val",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "any"
     },
     {
       "name": "type::field",
@@ -5462,6 +5848,45 @@
       "isAsync": false,
       "notCallable": false,
       "returns": "geometry"
+    },
+    {
+      "name": "type::i8",
+      "params": [
+        {
+          "name": "val",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "any"
+    },
+    {
+      "name": "type::i16",
+      "params": [
+        {
+          "name": "val",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "any"
+    },
+    {
+      "name": "type::i32",
+      "params": [
+        {
+          "name": "val",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "any"
     },
     {
       "name": "type::int",
@@ -5599,6 +6024,58 @@
       "returns": "table"
     },
     {
+      "name": "type::u8",
+      "params": [
+        {
+          "name": "val",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "any"
+    },
+    {
+      "name": "type::u16",
+      "params": [
+        {
+          "name": "val",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "any"
+    },
+    {
+      "name": "type::u32",
+      "params": [
+        {
+          "name": "val",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "any"
+    },
+    {
+      "name": "type::u64",
+      "params": [
+        {
+          "name": "val",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "any"
+    },
+    {
       "name": "type::uuid",
       "params": [
         {
@@ -5664,6 +6141,58 @@
       "returns": "bool"
     },
     {
+      "name": "type::is_date",
+      "params": [
+        {
+          "name": "arg",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "bool"
+    },
+    {
+      "name": "type::is_time",
+      "params": [
+        {
+          "name": "arg",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "bool"
+    },
+    {
+      "name": "type::is_timestamp",
+      "params": [
+        {
+          "name": "arg",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "bool"
+    },
+    {
+      "name": "type::is_interval",
+      "params": [
+        {
+          "name": "arg",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "bool"
+    },
+    {
       "name": "type::is_datetime",
       "params": [
         {
@@ -5703,6 +6232,32 @@
       "returns": "bool"
     },
     {
+      "name": "type::is_f16",
+      "params": [
+        {
+          "name": "arg",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "bool"
+    },
+    {
+      "name": "type::is_f32",
+      "params": [
+        {
+          "name": "arg",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "bool"
+    },
+    {
       "name": "type::is_float",
       "params": [
         {
@@ -5717,6 +6272,45 @@
     },
     {
       "name": "type::is_geometry",
+      "params": [
+        {
+          "name": "arg",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "bool"
+    },
+    {
+      "name": "type::is_i8",
+      "params": [
+        {
+          "name": "arg",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "bool"
+    },
+    {
+      "name": "type::is_i16",
+      "params": [
+        {
+          "name": "arg",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "bool"
+    },
+    {
+      "name": "type::is_i32",
       "params": [
         {
           "name": "arg",
@@ -5929,6 +6523,58 @@
       "returns": "bool"
     },
     {
+      "name": "type::is_u8",
+      "params": [
+        {
+          "name": "arg",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "bool"
+    },
+    {
+      "name": "type::is_u16",
+      "params": [
+        {
+          "name": "arg",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "bool"
+    },
+    {
+      "name": "type::is_u32",
+      "params": [
+        {
+          "name": "arg",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "bool"
+    },
+    {
+      "name": "type::is_u64",
+      "params": [
+        {
+          "name": "arg",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "bool"
+    },
+    {
       "name": "type::is_uuid",
       "params": [
         {
@@ -5979,9 +6625,20 @@
     },
     {
       "name": "value::chain",
-      "params": null,
-      "isAsync": false,
-      "notCallable": true,
+      "params": [
+        {
+          "name": "value",
+          "type": "any",
+          "form": "required"
+        },
+        {
+          "name": "worker",
+          "type": "function",
+          "form": "required"
+        }
+      ],
+      "isAsync": true,
+      "notCallable": false,
       "returns": "any"
     },
     {
@@ -6084,12 +6741,12 @@
       "params": [
         {
           "name": "a",
-          "type": "array<number>",
+          "type": "any",
           "form": "required"
         },
         {
           "name": "b",
-          "type": "array<number>",
+          "type": "any",
           "form": "required"
         }
       ],
@@ -6196,16 +6853,47 @@
       "returns": "array<number>"
     },
     {
+      "name": "vector::sum",
+      "params": [
+        {
+          "name": "vectors",
+          "type": "array<array<number>>",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "any"
+    },
+    {
       "name": "vector::distance::chebyshev",
       "params": [
         {
           "name": "a",
-          "type": "array<number>",
+          "type": "any",
           "form": "required"
         },
         {
           "name": "b",
-          "type": "array<number>",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": false,
+      "notCallable": false,
+      "returns": "float"
+    },
+    {
+      "name": "vector::distance::cosine",
+      "params": [
+        {
+          "name": "a",
+          "type": "any",
+          "form": "required"
+        },
+        {
+          "name": "b",
+          "type": "any",
           "form": "required"
         }
       ],
@@ -6218,12 +6906,12 @@
       "params": [
         {
           "name": "a",
-          "type": "array<number>",
+          "type": "any",
           "form": "required"
         },
         {
           "name": "b",
-          "type": "array<number>",
+          "type": "any",
           "form": "required"
         }
       ],
@@ -6236,12 +6924,12 @@
       "params": [
         {
           "name": "a",
-          "type": "array<number>",
+          "type": "any",
           "form": "required"
         },
         {
           "name": "b",
-          "type": "array<number>",
+          "type": "any",
           "form": "required"
         }
       ],
@@ -6253,7 +6941,7 @@
       "name": "vector::distance::knn",
       "params": [
         {
-          "name": "knn_ref",
+          "name": "_knn_ref",
           "type": "any",
           "form": "optional"
         }
@@ -6266,13 +6954,18 @@
       "name": "vector::distance::mahalanobis",
       "params": [
         {
-          "name": "value",
+          "name": "a",
           "type": "array<number>",
           "form": "required"
         },
         {
-          "name": "value",
+          "name": "b",
           "type": "array<number>",
+          "form": "required"
+        },
+        {
+          "name": "c",
+          "type": "array<array<number>>",
           "form": "required"
         }
       ],
@@ -6285,12 +6978,12 @@
       "params": [
         {
           "name": "a",
-          "type": "array<number>",
+          "type": "any",
           "form": "required"
         },
         {
           "name": "b",
-          "type": "array<number>",
+          "type": "any",
           "form": "required"
         }
       ],
@@ -6303,12 +6996,12 @@
       "params": [
         {
           "name": "a",
-          "type": "array<number>",
+          "type": "any",
           "form": "required"
         },
         {
           "name": "b",
-          "type": "array<number>",
+          "type": "any",
           "form": "required"
         },
         {
@@ -6326,12 +7019,12 @@
       "params": [
         {
           "name": "a",
-          "type": "array<number>",
+          "type": "any",
           "form": "required"
         },
         {
           "name": "b",
-          "type": "array<number>",
+          "type": "any",
           "form": "required"
         }
       ],
@@ -6344,12 +7037,12 @@
       "params": [
         {
           "name": "a",
-          "type": "array<number>",
+          "type": "any",
           "form": "required"
         },
         {
           "name": "b",
-          "type": "array<number>",
+          "type": "any",
           "form": "required"
         }
       ],
@@ -6379,12 +7072,12 @@
       "name": "vector::similarity::spearman",
       "params": [
         {
-          "name": "value",
+          "name": "a",
           "type": "array<number>",
           "form": "required"
         },
         {
-          "name": "value",
+          "name": "b",
           "type": "array<number>",
           "form": "required"
         }
@@ -6405,6 +7098,91 @@
       "isAsync": true,
       "notCallable": false,
       "returns": "bool"
+    },
+    {
+      "name": "enum::cast",
+      "params": [
+        {
+          "name": "name",
+          "type": "any",
+          "form": "required"
+        },
+        {
+          "name": "value",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": true,
+      "notCallable": false,
+      "returns": "any"
+    },
+    {
+      "name": "enum::max",
+      "params": [
+        {
+          "name": "name",
+          "type": "any",
+          "form": "required"
+        },
+        {
+          "name": "values",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": true,
+      "notCallable": false,
+      "returns": "any"
+    },
+    {
+      "name": "enum::min",
+      "params": [
+        {
+          "name": "name",
+          "type": "any",
+          "form": "required"
+        },
+        {
+          "name": "values",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": true,
+      "notCallable": false,
+      "returns": "any"
+    },
+    {
+      "name": "enum::rank",
+      "params": [
+        {
+          "name": "name",
+          "type": "any",
+          "form": "required"
+        },
+        {
+          "name": "value",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": true,
+      "notCallable": false,
+      "returns": "any"
+    },
+    {
+      "name": "enum::values",
+      "params": [
+        {
+          "name": "name",
+          "type": "any",
+          "form": "required"
+        }
+      ],
+      "isAsync": true,
+      "notCallable": false,
+      "returns": "any"
     }
   ],
   "constants": [
@@ -6693,10 +7471,12 @@
     "crypto::",
     "duration::",
     "encoding::",
+    "enum::",
     "eval::",
     "file::",
     "geo::",
     "http::",
+    "interval::",
     "math::",
     "meta::",
     "object::",
@@ -6716,41 +7496,11 @@
   ],
   "receivers": [
     {
-      "kind": "Set",
+      "kind": null,
       "methods": [
-        {
-          "method": "add",
-          "function": "set::add",
-          "experimental": null
-        },
-        {
-          "method": "all",
-          "function": "set::all",
-          "experimental": null
-        },
-        {
-          "method": "any",
-          "function": "set::any",
-          "experimental": null
-        },
-        {
-          "method": "at",
-          "function": "set::at",
-          "experimental": null
-        },
         {
           "method": "chain",
           "function": "value::chain",
-          "experimental": null
-        },
-        {
-          "method": "complement",
-          "function": "set::complement",
-          "experimental": null
-        },
-        {
-          "method": "contains",
-          "function": "set::contains",
           "experimental": null
         },
         {
@@ -6759,43 +7509,8 @@
           "experimental": null
         },
         {
-          "method": "difference",
-          "function": "set::difference",
-          "experimental": null
-        },
-        {
           "method": "expect",
           "function": "value::expect",
-          "experimental": null
-        },
-        {
-          "method": "filter",
-          "function": "set::filter",
-          "experimental": null
-        },
-        {
-          "method": "find",
-          "function": "set::find",
-          "experimental": null
-        },
-        {
-          "method": "first",
-          "function": "set::first",
-          "experimental": null
-        },
-        {
-          "method": "flatten",
-          "function": "set::flatten",
-          "experimental": null
-        },
-        {
-          "method": "fold",
-          "function": "set::fold",
-          "experimental": null
-        },
-        {
-          "method": "intersect",
-          "function": "set::intersect",
           "experimental": null
         },
         {
@@ -6819,6 +7534,11 @@
           "experimental": null
         },
         {
+          "method": "is_date",
+          "function": "type::is_date",
+          "experimental": null
+        },
+        {
           "method": "is_datetime",
           "function": "type::is_datetime",
           "experimental": null
@@ -6834,11 +7554,6 @@
           "experimental": null
         },
         {
-          "method": "is_empty",
-          "function": "set::is_empty",
-          "experimental": null
-        },
-        {
           "method": "is_float",
           "function": "type::is_float",
           "experimental": null
@@ -6851,6 +7566,11 @@
         {
           "method": "is_int",
           "function": "type::is_int",
+          "experimental": null
+        },
+        {
+          "method": "is_interval",
+          "function": "type::is_interval",
           "experimental": null
         },
         {
@@ -6924,38 +7644,18 @@
           "experimental": null
         },
         {
+          "method": "is_time",
+          "function": "type::is_time",
+          "experimental": null
+        },
+        {
+          "method": "is_timestamp",
+          "function": "type::is_timestamp",
+          "experimental": null
+        },
+        {
           "method": "is_uuid",
           "function": "type::is_uuid",
-          "experimental": null
-        },
-        {
-          "method": "join",
-          "function": "set::join",
-          "experimental": null
-        },
-        {
-          "method": "last",
-          "function": "set::last",
-          "experimental": null
-        },
-        {
-          "method": "len",
-          "function": "set::len",
-          "experimental": null
-        },
-        {
-          "method": "map",
-          "function": "set::map",
-          "experimental": null
-        },
-        {
-          "method": "max",
-          "function": "set::max",
-          "experimental": null
-        },
-        {
-          "method": "min",
-          "function": "set::min",
           "experimental": null
         },
         {
@@ -6964,23 +7664,8 @@
           "experimental": null
         },
         {
-          "method": "reduce",
-          "function": "set::reduce",
-          "experimental": null
-        },
-        {
-          "method": "remove",
-          "function": "set::remove",
-          "experimental": null
-        },
-        {
           "method": "repeat",
           "function": "array::repeat",
-          "experimental": null
-        },
-        {
-          "method": "slice",
-          "function": "set::slice",
           "experimental": null
         },
         {
@@ -6996,6 +7681,11 @@
         {
           "method": "to_bytes",
           "function": "type::bytes",
+          "experimental": null
+        },
+        {
+          "method": "to_date",
+          "function": "type::date",
           "experimental": null
         },
         {
@@ -7026,6 +7716,11 @@
         {
           "method": "to_int",
           "function": "type::int",
+          "experimental": null
+        },
+        {
+          "method": "to_interval",
+          "function": "type::interval",
           "experimental": null
         },
         {
@@ -7064,6 +7759,16 @@
           "experimental": null
         },
         {
+          "method": "to_time",
+          "function": "type::time",
+          "experimental": null
+        },
+        {
+          "method": "to_timestamp",
+          "function": "type::timestamp",
+          "experimental": null
+        },
+        {
           "method": "to_uuid",
           "function": "type::uuid",
           "experimental": null
@@ -7071,11 +7776,6 @@
         {
           "method": "type_of",
           "function": "type::of",
-          "experimental": null
-        },
-        {
-          "method": "union",
-          "function": "set::union",
           "experimental": null
         }
       ]
@@ -7129,11 +7829,6 @@
           "experimental": null
         },
         {
-          "method": "chain",
-          "function": "value::chain",
-          "experimental": null
-        },
-        {
           "method": "clump",
           "function": "array::clump",
           "experimental": null
@@ -7154,11 +7849,6 @@
           "experimental": null
         },
         {
-          "method": "diff",
-          "function": "value::diff",
-          "experimental": null
-        },
-        {
           "method": "difference",
           "function": "array::difference",
           "experimental": null
@@ -7171,11 +7861,6 @@
         {
           "method": "every",
           "function": "array::all",
-          "experimental": null
-        },
-        {
-          "method": "expect",
-          "function": "value::expect",
           "experimental": null
         },
         {
@@ -7244,133 +7929,8 @@
           "experimental": null
         },
         {
-          "method": "is_array",
-          "function": "type::is_array",
-          "experimental": null
-        },
-        {
-          "method": "is_bool",
-          "function": "type::is_bool",
-          "experimental": null
-        },
-        {
-          "method": "is_bytes",
-          "function": "type::is_bytes",
-          "experimental": null
-        },
-        {
-          "method": "is_collection",
-          "function": "type::is_collection",
-          "experimental": null
-        },
-        {
-          "method": "is_datetime",
-          "function": "type::is_datetime",
-          "experimental": null
-        },
-        {
-          "method": "is_decimal",
-          "function": "type::is_decimal",
-          "experimental": null
-        },
-        {
-          "method": "is_duration",
-          "function": "type::is_duration",
-          "experimental": null
-        },
-        {
           "method": "is_empty",
           "function": "array::is_empty",
-          "experimental": null
-        },
-        {
-          "method": "is_float",
-          "function": "type::is_float",
-          "experimental": null
-        },
-        {
-          "method": "is_geometry",
-          "function": "type::is_geometry",
-          "experimental": null
-        },
-        {
-          "method": "is_int",
-          "function": "type::is_int",
-          "experimental": null
-        },
-        {
-          "method": "is_line",
-          "function": "type::is_line",
-          "experimental": null
-        },
-        {
-          "method": "is_multiline",
-          "function": "type::is_multiline",
-          "experimental": null
-        },
-        {
-          "method": "is_multipoint",
-          "function": "type::is_multipoint",
-          "experimental": null
-        },
-        {
-          "method": "is_multipolygon",
-          "function": "type::is_multipolygon",
-          "experimental": null
-        },
-        {
-          "method": "is_none",
-          "function": "type::is_none",
-          "experimental": null
-        },
-        {
-          "method": "is_null",
-          "function": "type::is_null",
-          "experimental": null
-        },
-        {
-          "method": "is_number",
-          "function": "type::is_number",
-          "experimental": null
-        },
-        {
-          "method": "is_object",
-          "function": "type::is_object",
-          "experimental": null
-        },
-        {
-          "method": "is_point",
-          "function": "type::is_point",
-          "experimental": null
-        },
-        {
-          "method": "is_polygon",
-          "function": "type::is_polygon",
-          "experimental": null
-        },
-        {
-          "method": "is_range",
-          "function": "type::is_range",
-          "experimental": null
-        },
-        {
-          "method": "is_record",
-          "function": "type::is_record",
-          "experimental": null
-        },
-        {
-          "method": "is_set",
-          "function": "type::is_set",
-          "experimental": null
-        },
-        {
-          "method": "is_string",
-          "function": "type::is_string",
-          "experimental": null
-        },
-        {
-          "method": "is_uuid",
-          "function": "type::is_uuid",
           "experimental": null
         },
         {
@@ -7424,11 +7984,6 @@
           "experimental": null
         },
         {
-          "method": "patch",
-          "function": "value::patch",
-          "experimental": null
-        },
-        {
           "method": "pop",
           "function": "array::pop",
           "experimental": null
@@ -7451,11 +8006,6 @@
         {
           "method": "remove",
           "function": "array::remove",
-          "experimental": null
-        },
-        {
-          "method": "repeat",
-          "function": "array::repeat",
           "experimental": null
         },
         {
@@ -7514,98 +8064,8 @@
           "experimental": null
         },
         {
-          "method": "to_array",
-          "function": "type::array",
-          "experimental": null
-        },
-        {
-          "method": "to_bool",
-          "function": "type::bool",
-          "experimental": null
-        },
-        {
-          "method": "to_bytes",
-          "function": "type::bytes",
-          "experimental": null
-        },
-        {
-          "method": "to_datetime",
-          "function": "type::datetime",
-          "experimental": null
-        },
-        {
-          "method": "to_decimal",
-          "function": "type::decimal",
-          "experimental": null
-        },
-        {
-          "method": "to_duration",
-          "function": "type::duration",
-          "experimental": null
-        },
-        {
-          "method": "to_float",
-          "function": "type::float",
-          "experimental": null
-        },
-        {
-          "method": "to_geometry",
-          "function": "type::geometry",
-          "experimental": null
-        },
-        {
-          "method": "to_int",
-          "function": "type::int",
-          "experimental": null
-        },
-        {
-          "method": "to_number",
-          "function": "type::number",
-          "experimental": null
-        },
-        {
-          "method": "to_point",
-          "function": "type::point",
-          "experimental": null
-        },
-        {
-          "method": "to_range",
-          "function": "type::range",
-          "experimental": null
-        },
-        {
-          "method": "to_record",
-          "function": "type::record",
-          "experimental": null
-        },
-        {
-          "method": "to_set",
-          "function": "type::set",
-          "experimental": null
-        },
-        {
-          "method": "to_string",
-          "function": "type::string",
-          "experimental": null
-        },
-        {
-          "method": "to_string_lossy",
-          "function": "type::string_lossy",
-          "experimental": null
-        },
-        {
-          "method": "to_uuid",
-          "function": "type::uuid",
-          "experimental": null
-        },
-        {
           "method": "transpose",
           "function": "array::transpose",
-          "experimental": null
-        },
-        {
-          "method": "type_of",
-          "function": "type::of",
           "experimental": null
         },
         {
@@ -7634,6 +8094,11 @@
           "experimental": null
         },
         {
+          "method": "vector_distance_cosine",
+          "function": "vector::distance::cosine",
+          "experimental": null
+        },
+        {
           "method": "vector_distance_euclidean",
           "function": "vector::distance::euclidean",
           "experimental": null
@@ -7641,11 +8106,6 @@
         {
           "method": "vector_distance_hamming",
           "function": "vector::distance::hamming",
-          "experimental": null
-        },
-        {
-          "method": "vector_distance_knn",
-          "function": "vector::distance::knn",
           "experimental": null
         },
         {
@@ -7724,6 +8184,11 @@
           "experimental": null
         },
         {
+          "method": "vector_sum",
+          "function": "vector::sum",
+          "experimental": null
+        },
+        {
           "method": "windows",
           "function": "array::windows",
           "experimental": null
@@ -7734,248 +8199,253 @@
       "kind": "Bytes",
       "methods": [
         {
-          "method": "chain",
-          "function": "value::chain",
-          "experimental": null
-        },
-        {
-          "method": "diff",
-          "function": "value::diff",
-          "experimental": null
-        },
-        {
-          "method": "expect",
-          "function": "value::expect",
-          "experimental": null
-        },
-        {
-          "method": "is_array",
-          "function": "type::is_array",
-          "experimental": null
-        },
-        {
-          "method": "is_bool",
-          "function": "type::is_bool",
-          "experimental": null
-        },
-        {
-          "method": "is_bytes",
-          "function": "type::is_bytes",
-          "experimental": null
-        },
-        {
-          "method": "is_collection",
-          "function": "type::is_collection",
-          "experimental": null
-        },
-        {
-          "method": "is_datetime",
-          "function": "type::is_datetime",
-          "experimental": null
-        },
-        {
-          "method": "is_decimal",
-          "function": "type::is_decimal",
-          "experimental": null
-        },
-        {
-          "method": "is_duration",
-          "function": "type::is_duration",
-          "experimental": null
-        },
-        {
-          "method": "is_float",
-          "function": "type::is_float",
-          "experimental": null
-        },
-        {
-          "method": "is_geometry",
-          "function": "type::is_geometry",
-          "experimental": null
-        },
-        {
-          "method": "is_int",
-          "function": "type::is_int",
-          "experimental": null
-        },
-        {
-          "method": "is_line",
-          "function": "type::is_line",
-          "experimental": null
-        },
-        {
-          "method": "is_multiline",
-          "function": "type::is_multiline",
-          "experimental": null
-        },
-        {
-          "method": "is_multipoint",
-          "function": "type::is_multipoint",
-          "experimental": null
-        },
-        {
-          "method": "is_multipolygon",
-          "function": "type::is_multipolygon",
-          "experimental": null
-        },
-        {
-          "method": "is_none",
-          "function": "type::is_none",
-          "experimental": null
-        },
-        {
-          "method": "is_null",
-          "function": "type::is_null",
-          "experimental": null
-        },
-        {
-          "method": "is_number",
-          "function": "type::is_number",
-          "experimental": null
-        },
-        {
-          "method": "is_object",
-          "function": "type::is_object",
-          "experimental": null
-        },
-        {
-          "method": "is_point",
-          "function": "type::is_point",
-          "experimental": null
-        },
-        {
-          "method": "is_polygon",
-          "function": "type::is_polygon",
-          "experimental": null
-        },
-        {
-          "method": "is_range",
-          "function": "type::is_range",
-          "experimental": null
-        },
-        {
-          "method": "is_record",
-          "function": "type::is_record",
-          "experimental": null
-        },
-        {
-          "method": "is_set",
-          "function": "type::is_set",
-          "experimental": null
-        },
-        {
-          "method": "is_string",
-          "function": "type::is_string",
-          "experimental": null
-        },
-        {
-          "method": "is_uuid",
-          "function": "type::is_uuid",
-          "experimental": null
-        },
-        {
           "method": "len",
           "function": "bytes::len",
           "experimental": null
-        },
+        }
+      ]
+    },
+    {
+      "kind": "Date",
+      "methods": [
         {
-          "method": "patch",
-          "function": "value::patch",
+          "method": "age",
+          "function": "time::age",
           "experimental": null
         },
         {
-          "method": "repeat",
-          "function": "array::repeat",
+          "method": "ceil",
+          "function": "time::ceil",
           "experimental": null
         },
         {
-          "method": "to_array",
-          "function": "type::array",
+          "method": "day",
+          "function": "time::day",
           "experimental": null
         },
         {
-          "method": "to_bool",
-          "function": "type::bool",
+          "method": "extract",
+          "function": "time::extract",
           "experimental": null
         },
         {
-          "method": "to_bytes",
-          "function": "type::bytes",
+          "method": "floor",
+          "function": "time::floor",
           "experimental": null
         },
         {
-          "method": "to_datetime",
-          "function": "type::datetime",
+          "method": "format",
+          "function": "time::format",
           "experimental": null
         },
         {
-          "method": "to_decimal",
-          "function": "type::decimal",
+          "method": "group",
+          "function": "time::group",
           "experimental": null
         },
         {
-          "method": "to_duration",
-          "function": "type::duration",
+          "method": "is_leap_year",
+          "function": "time::is_leap_year",
           "experimental": null
         },
         {
-          "method": "to_float",
-          "function": "type::float",
+          "method": "month",
+          "function": "time::month",
           "experimental": null
         },
         {
-          "method": "to_geometry",
-          "function": "type::geometry",
+          "method": "round",
+          "function": "time::round",
           "experimental": null
         },
         {
-          "method": "to_int",
-          "function": "type::int",
+          "method": "set_day",
+          "function": "time::set_day",
           "experimental": null
         },
         {
-          "method": "to_number",
-          "function": "type::number",
+          "method": "set_month",
+          "function": "time::set_month",
           "experimental": null
         },
         {
-          "method": "to_point",
-          "function": "type::point",
+          "method": "set_year",
+          "function": "time::set_year",
           "experimental": null
         },
         {
-          "method": "to_range",
-          "function": "type::range",
+          "method": "trunc",
+          "function": "time::trunc",
           "experimental": null
         },
         {
-          "method": "to_record",
-          "function": "type::record",
+          "method": "wday",
+          "function": "time::wday",
           "experimental": null
         },
         {
-          "method": "to_set",
-          "function": "type::set",
+          "method": "week",
+          "function": "time::week",
           "experimental": null
         },
         {
-          "method": "to_string",
-          "function": "type::string",
+          "method": "yday",
+          "function": "time::yday",
           "experimental": null
         },
         {
-          "method": "to_string_lossy",
-          "function": "type::string_lossy",
+          "method": "year",
+          "function": "time::year",
+          "experimental": null
+        }
+      ]
+    },
+    {
+      "kind": "Datetime",
+      "methods": [
+        {
+          "method": "age",
+          "function": "time::age",
           "experimental": null
         },
         {
-          "method": "to_uuid",
-          "function": "type::uuid",
+          "method": "ceil",
+          "function": "time::ceil",
           "experimental": null
         },
         {
-          "method": "type_of",
-          "function": "type::of",
+          "method": "day",
+          "function": "time::day",
+          "experimental": null
+        },
+        {
+          "method": "extract",
+          "function": "time::extract",
+          "experimental": null
+        },
+        {
+          "method": "floor",
+          "function": "time::floor",
+          "experimental": null
+        },
+        {
+          "method": "format",
+          "function": "time::format",
+          "experimental": null
+        },
+        {
+          "method": "group",
+          "function": "time::group",
+          "experimental": null
+        },
+        {
+          "method": "hour",
+          "function": "time::hour",
+          "experimental": null
+        },
+        {
+          "method": "is_leap_year",
+          "function": "time::is_leap_year",
+          "experimental": null
+        },
+        {
+          "method": "micros",
+          "function": "time::micros",
+          "experimental": null
+        },
+        {
+          "method": "millis",
+          "function": "time::millis",
+          "experimental": null
+        },
+        {
+          "method": "minute",
+          "function": "time::minute",
+          "experimental": null
+        },
+        {
+          "method": "month",
+          "function": "time::month",
+          "experimental": null
+        },
+        {
+          "method": "nano",
+          "function": "time::nano",
+          "experimental": null
+        },
+        {
+          "method": "round",
+          "function": "time::round",
+          "experimental": null
+        },
+        {
+          "method": "second",
+          "function": "time::second",
+          "experimental": null
+        },
+        {
+          "method": "set_day",
+          "function": "time::set_day",
+          "experimental": null
+        },
+        {
+          "method": "set_hour",
+          "function": "time::set_hour",
+          "experimental": null
+        },
+        {
+          "method": "set_minute",
+          "function": "time::set_minute",
+          "experimental": null
+        },
+        {
+          "method": "set_month",
+          "function": "time::set_month",
+          "experimental": null
+        },
+        {
+          "method": "set_nanosecond",
+          "function": "time::set_nanosecond",
+          "experimental": null
+        },
+        {
+          "method": "set_second",
+          "function": "time::set_second",
+          "experimental": null
+        },
+        {
+          "method": "set_year",
+          "function": "time::set_year",
+          "experimental": null
+        },
+        {
+          "method": "trunc",
+          "function": "time::trunc",
+          "experimental": null
+        },
+        {
+          "method": "unix",
+          "function": "time::unix",
+          "experimental": null
+        },
+        {
+          "method": "wday",
+          "function": "time::wday",
+          "experimental": null
+        },
+        {
+          "method": "week",
+          "function": "time::week",
+          "experimental": null
+        },
+        {
+          "method": "yday",
+          "function": "time::yday",
+          "experimental": null
+        },
+        {
+          "method": "year",
+          "function": "time::year",
           "experimental": null
         }
       ]
@@ -7984,153 +8454,13 @@
       "kind": "Duration",
       "methods": [
         {
-          "method": "chain",
-          "function": "value::chain",
-          "experimental": null
-        },
-        {
           "method": "days",
           "function": "duration::days",
           "experimental": null
         },
         {
-          "method": "diff",
-          "function": "value::diff",
-          "experimental": null
-        },
-        {
-          "method": "expect",
-          "function": "value::expect",
-          "experimental": null
-        },
-        {
           "method": "hours",
           "function": "duration::hours",
-          "experimental": null
-        },
-        {
-          "method": "is_array",
-          "function": "type::is_array",
-          "experimental": null
-        },
-        {
-          "method": "is_bool",
-          "function": "type::is_bool",
-          "experimental": null
-        },
-        {
-          "method": "is_bytes",
-          "function": "type::is_bytes",
-          "experimental": null
-        },
-        {
-          "method": "is_collection",
-          "function": "type::is_collection",
-          "experimental": null
-        },
-        {
-          "method": "is_datetime",
-          "function": "type::is_datetime",
-          "experimental": null
-        },
-        {
-          "method": "is_decimal",
-          "function": "type::is_decimal",
-          "experimental": null
-        },
-        {
-          "method": "is_duration",
-          "function": "type::is_duration",
-          "experimental": null
-        },
-        {
-          "method": "is_float",
-          "function": "type::is_float",
-          "experimental": null
-        },
-        {
-          "method": "is_geometry",
-          "function": "type::is_geometry",
-          "experimental": null
-        },
-        {
-          "method": "is_int",
-          "function": "type::is_int",
-          "experimental": null
-        },
-        {
-          "method": "is_line",
-          "function": "type::is_line",
-          "experimental": null
-        },
-        {
-          "method": "is_multiline",
-          "function": "type::is_multiline",
-          "experimental": null
-        },
-        {
-          "method": "is_multipoint",
-          "function": "type::is_multipoint",
-          "experimental": null
-        },
-        {
-          "method": "is_multipolygon",
-          "function": "type::is_multipolygon",
-          "experimental": null
-        },
-        {
-          "method": "is_none",
-          "function": "type::is_none",
-          "experimental": null
-        },
-        {
-          "method": "is_null",
-          "function": "type::is_null",
-          "experimental": null
-        },
-        {
-          "method": "is_number",
-          "function": "type::is_number",
-          "experimental": null
-        },
-        {
-          "method": "is_object",
-          "function": "type::is_object",
-          "experimental": null
-        },
-        {
-          "method": "is_point",
-          "function": "type::is_point",
-          "experimental": null
-        },
-        {
-          "method": "is_polygon",
-          "function": "type::is_polygon",
-          "experimental": null
-        },
-        {
-          "method": "is_range",
-          "function": "type::is_range",
-          "experimental": null
-        },
-        {
-          "method": "is_record",
-          "function": "type::is_record",
-          "experimental": null
-        },
-        {
-          "method": "is_set",
-          "function": "type::is_set",
-          "experimental": null
-        },
-        {
-          "method": "is_string",
-          "function": "type::is_string",
-          "experimental": null
-        },
-        {
-          "method": "is_uuid",
-          "function": "type::is_uuid",
           "experimental": null
         },
         {
@@ -8154,108 +8484,8 @@
           "experimental": null
         },
         {
-          "method": "patch",
-          "function": "value::patch",
-          "experimental": null
-        },
-        {
-          "method": "repeat",
-          "function": "array::repeat",
-          "experimental": null
-        },
-        {
           "method": "secs",
           "function": "duration::secs",
-          "experimental": null
-        },
-        {
-          "method": "to_array",
-          "function": "type::array",
-          "experimental": null
-        },
-        {
-          "method": "to_bool",
-          "function": "type::bool",
-          "experimental": null
-        },
-        {
-          "method": "to_bytes",
-          "function": "type::bytes",
-          "experimental": null
-        },
-        {
-          "method": "to_datetime",
-          "function": "type::datetime",
-          "experimental": null
-        },
-        {
-          "method": "to_decimal",
-          "function": "type::decimal",
-          "experimental": null
-        },
-        {
-          "method": "to_duration",
-          "function": "type::duration",
-          "experimental": null
-        },
-        {
-          "method": "to_float",
-          "function": "type::float",
-          "experimental": null
-        },
-        {
-          "method": "to_geometry",
-          "function": "type::geometry",
-          "experimental": null
-        },
-        {
-          "method": "to_int",
-          "function": "type::int",
-          "experimental": null
-        },
-        {
-          "method": "to_number",
-          "function": "type::number",
-          "experimental": null
-        },
-        {
-          "method": "to_point",
-          "function": "type::point",
-          "experimental": null
-        },
-        {
-          "method": "to_range",
-          "function": "type::range",
-          "experimental": null
-        },
-        {
-          "method": "to_record",
-          "function": "type::record",
-          "experimental": null
-        },
-        {
-          "method": "to_set",
-          "function": "type::set",
-          "experimental": null
-        },
-        {
-          "method": "to_string",
-          "function": "type::string",
-          "experimental": null
-        },
-        {
-          "method": "to_string_lossy",
-          "function": "type::string_lossy",
-          "experimental": null
-        },
-        {
-          "method": "to_uuid",
-          "function": "type::uuid",
-          "experimental": null
-        },
-        {
-          "method": "type_of",
-          "function": "type::of",
           "experimental": null
         },
         {
@@ -8266,6 +8496,86 @@
         {
           "method": "years",
           "function": "duration::years",
+          "experimental": null
+        }
+      ]
+    },
+    {
+      "kind": "File",
+      "methods": [
+        {
+          "method": "bucket",
+          "function": "file::bucket",
+          "experimental": null
+        },
+        {
+          "method": "copy",
+          "function": "file::copy",
+          "experimental": null
+        },
+        {
+          "method": "copy_if_not_exists",
+          "function": "file::copy_if_not_exists",
+          "experimental": null
+        },
+        {
+          "method": "delete",
+          "function": "file::delete",
+          "experimental": null
+        },
+        {
+          "method": "exists",
+          "function": "file::exists",
+          "experimental": null
+        },
+        {
+          "method": "get",
+          "function": "file::get",
+          "experimental": null
+        },
+        {
+          "method": "head",
+          "function": "file::head",
+          "experimental": null
+        },
+        {
+          "method": "key",
+          "function": "file::key",
+          "experimental": null
+        },
+        {
+          "method": "list",
+          "function": "file::list",
+          "experimental": null
+        },
+        {
+          "method": "presign_get",
+          "function": "file::presign_get",
+          "experimental": null
+        },
+        {
+          "method": "presign_put",
+          "function": "file::presign_put",
+          "experimental": null
+        },
+        {
+          "method": "put",
+          "function": "file::put",
+          "experimental": null
+        },
+        {
+          "method": "put_if_not_exists",
+          "function": "file::put_if_not_exists",
+          "experimental": null
+        },
+        {
+          "method": "rename",
+          "function": "file::rename",
+          "experimental": null
+        },
+        {
+          "method": "rename_if_not_exists",
+          "function": "file::rename_if_not_exists",
           "experimental": null
         }
       ]
@@ -8289,23 +8599,8 @@
           "experimental": null
         },
         {
-          "method": "chain",
-          "function": "value::chain",
-          "experimental": null
-        },
-        {
-          "method": "diff",
-          "function": "value::diff",
-          "experimental": null
-        },
-        {
           "method": "distance",
           "function": "geo::distance",
-          "experimental": null
-        },
-        {
-          "method": "expect",
-          "function": "value::expect",
           "experimental": null
         },
         {
@@ -8319,783 +8614,63 @@
           "experimental": null
         },
         {
-          "method": "is_array",
-          "function": "type::is_array",
-          "experimental": null
-        },
-        {
-          "method": "is_bool",
-          "function": "type::is_bool",
-          "experimental": null
-        },
-        {
-          "method": "is_bytes",
-          "function": "type::is_bytes",
-          "experimental": null
-        },
-        {
-          "method": "is_collection",
-          "function": "type::is_collection",
-          "experimental": null
-        },
-        {
-          "method": "is_datetime",
-          "function": "type::is_datetime",
-          "experimental": null
-        },
-        {
-          "method": "is_decimal",
-          "function": "type::is_decimal",
-          "experimental": null
-        },
-        {
-          "method": "is_duration",
-          "function": "type::is_duration",
-          "experimental": null
-        },
-        {
-          "method": "is_float",
-          "function": "type::is_float",
-          "experimental": null
-        },
-        {
-          "method": "is_geometry",
-          "function": "type::is_geometry",
-          "experimental": null
-        },
-        {
-          "method": "is_int",
-          "function": "type::is_int",
-          "experimental": null
-        },
-        {
-          "method": "is_line",
-          "function": "type::is_line",
-          "experimental": null
-        },
-        {
-          "method": "is_multiline",
-          "function": "type::is_multiline",
-          "experimental": null
-        },
-        {
-          "method": "is_multipoint",
-          "function": "type::is_multipoint",
-          "experimental": null
-        },
-        {
-          "method": "is_multipolygon",
-          "function": "type::is_multipolygon",
-          "experimental": null
-        },
-        {
-          "method": "is_none",
-          "function": "type::is_none",
-          "experimental": null
-        },
-        {
-          "method": "is_null",
-          "function": "type::is_null",
-          "experimental": null
-        },
-        {
-          "method": "is_number",
-          "function": "type::is_number",
-          "experimental": null
-        },
-        {
-          "method": "is_object",
-          "function": "type::is_object",
-          "experimental": null
-        },
-        {
-          "method": "is_point",
-          "function": "type::is_point",
-          "experimental": null
-        },
-        {
-          "method": "is_polygon",
-          "function": "type::is_polygon",
-          "experimental": null
-        },
-        {
-          "method": "is_range",
-          "function": "type::is_range",
-          "experimental": null
-        },
-        {
-          "method": "is_record",
-          "function": "type::is_record",
-          "experimental": null
-        },
-        {
-          "method": "is_set",
-          "function": "type::is_set",
-          "experimental": null
-        },
-        {
-          "method": "is_string",
-          "function": "type::is_string",
-          "experimental": null
-        },
-        {
-          "method": "is_uuid",
-          "function": "type::is_uuid",
-          "experimental": null
-        },
-        {
           "method": "is_valid",
           "function": "geo::is_valid",
           "experimental": null
-        },
-        {
-          "method": "patch",
-          "function": "value::patch",
-          "experimental": null
-        },
-        {
-          "method": "repeat",
-          "function": "array::repeat",
-          "experimental": null
-        },
-        {
-          "method": "to_array",
-          "function": "type::array",
-          "experimental": null
-        },
-        {
-          "method": "to_bool",
-          "function": "type::bool",
-          "experimental": null
-        },
-        {
-          "method": "to_bytes",
-          "function": "type::bytes",
-          "experimental": null
-        },
-        {
-          "method": "to_datetime",
-          "function": "type::datetime",
-          "experimental": null
-        },
-        {
-          "method": "to_decimal",
-          "function": "type::decimal",
-          "experimental": null
-        },
-        {
-          "method": "to_duration",
-          "function": "type::duration",
-          "experimental": null
-        },
-        {
-          "method": "to_float",
-          "function": "type::float",
-          "experimental": null
-        },
-        {
-          "method": "to_geometry",
-          "function": "type::geometry",
-          "experimental": null
-        },
-        {
-          "method": "to_int",
-          "function": "type::int",
-          "experimental": null
-        },
-        {
-          "method": "to_number",
-          "function": "type::number",
-          "experimental": null
-        },
-        {
-          "method": "to_point",
-          "function": "type::point",
-          "experimental": null
-        },
-        {
-          "method": "to_range",
-          "function": "type::range",
-          "experimental": null
-        },
-        {
-          "method": "to_record",
-          "function": "type::record",
-          "experimental": null
-        },
-        {
-          "method": "to_set",
-          "function": "type::set",
-          "experimental": null
-        },
-        {
-          "method": "to_string",
-          "function": "type::string",
-          "experimental": null
-        },
-        {
-          "method": "to_string_lossy",
-          "function": "type::string_lossy",
-          "experimental": null
-        },
-        {
-          "method": "to_uuid",
-          "function": "type::uuid",
-          "experimental": null
-        },
-        {
-          "method": "type_of",
-          "function": "type::of",
-          "experimental": null
         }
       ]
     },
     {
-      "kind": "RecordId",
+      "kind": "Interval",
       "methods": [
         {
-          "method": "chain",
-          "function": "value::chain",
+          "method": "days",
+          "function": "interval::days",
           "experimental": null
         },
         {
-          "method": "diff",
-          "function": "value::diff",
+          "method": "hours",
+          "function": "interval::hours",
           "experimental": null
         },
         {
-          "method": "exists",
-          "function": "record::exists",
+          "method": "justify_days",
+          "function": "interval::justify_days",
           "experimental": null
         },
         {
-          "method": "expect",
-          "function": "value::expect",
+          "method": "justify_hours",
+          "function": "interval::justify_hours",
           "experimental": null
         },
         {
-          "method": "id",
-          "function": "record::id",
+          "method": "justify_interval",
+          "function": "interval::justify_interval",
           "experimental": null
         },
         {
-          "method": "is_array",
-          "function": "type::is_array",
+          "method": "micros",
+          "function": "interval::micros",
           "experimental": null
         },
         {
-          "method": "is_bool",
-          "function": "type::is_bool",
+          "method": "mins",
+          "function": "interval::mins",
           "experimental": null
         },
         {
-          "method": "is_bytes",
-          "function": "type::is_bytes",
+          "method": "months",
+          "function": "interval::months",
           "experimental": null
         },
         {
-          "method": "is_collection",
-          "function": "type::is_collection",
+          "method": "secs",
+          "function": "interval::secs",
           "experimental": null
         },
         {
-          "method": "is_datetime",
-          "function": "type::is_datetime",
-          "experimental": null
-        },
-        {
-          "method": "is_decimal",
-          "function": "type::is_decimal",
-          "experimental": null
-        },
-        {
-          "method": "is_duration",
-          "function": "type::is_duration",
-          "experimental": null
-        },
-        {
-          "method": "is_edge",
-          "function": "record::is_edge",
-          "experimental": null
-        },
-        {
-          "method": "is_float",
-          "function": "type::is_float",
-          "experimental": null
-        },
-        {
-          "method": "is_geometry",
-          "function": "type::is_geometry",
-          "experimental": null
-        },
-        {
-          "method": "is_int",
-          "function": "type::is_int",
-          "experimental": null
-        },
-        {
-          "method": "is_line",
-          "function": "type::is_line",
-          "experimental": null
-        },
-        {
-          "method": "is_multiline",
-          "function": "type::is_multiline",
-          "experimental": null
-        },
-        {
-          "method": "is_multipoint",
-          "function": "type::is_multipoint",
-          "experimental": null
-        },
-        {
-          "method": "is_multipolygon",
-          "function": "type::is_multipolygon",
-          "experimental": null
-        },
-        {
-          "method": "is_none",
-          "function": "type::is_none",
-          "experimental": null
-        },
-        {
-          "method": "is_null",
-          "function": "type::is_null",
-          "experimental": null
-        },
-        {
-          "method": "is_number",
-          "function": "type::is_number",
-          "experimental": null
-        },
-        {
-          "method": "is_object",
-          "function": "type::is_object",
-          "experimental": null
-        },
-        {
-          "method": "is_point",
-          "function": "type::is_point",
-          "experimental": null
-        },
-        {
-          "method": "is_polygon",
-          "function": "type::is_polygon",
-          "experimental": null
-        },
-        {
-          "method": "is_range",
-          "function": "type::is_range",
-          "experimental": null
-        },
-        {
-          "method": "is_record",
-          "function": "type::is_record",
-          "experimental": null
-        },
-        {
-          "method": "is_set",
-          "function": "type::is_set",
-          "experimental": null
-        },
-        {
-          "method": "is_string",
-          "function": "type::is_string",
-          "experimental": null
-        },
-        {
-          "method": "is_uuid",
-          "function": "type::is_uuid",
-          "experimental": null
-        },
-        {
-          "method": "patch",
-          "function": "value::patch",
-          "experimental": null
-        },
-        {
-          "method": "repeat",
-          "function": "array::repeat",
-          "experimental": null
-        },
-        {
-          "method": "table",
-          "function": "record::tb",
-          "experimental": null
-        },
-        {
-          "method": "tb",
-          "function": "record::tb",
-          "experimental": null
-        },
-        {
-          "method": "to_array",
-          "function": "type::array",
-          "experimental": null
-        },
-        {
-          "method": "to_bool",
-          "function": "type::bool",
-          "experimental": null
-        },
-        {
-          "method": "to_bytes",
-          "function": "type::bytes",
-          "experimental": null
-        },
-        {
-          "method": "to_datetime",
-          "function": "type::datetime",
-          "experimental": null
-        },
-        {
-          "method": "to_decimal",
-          "function": "type::decimal",
-          "experimental": null
-        },
-        {
-          "method": "to_duration",
-          "function": "type::duration",
-          "experimental": null
-        },
-        {
-          "method": "to_float",
-          "function": "type::float",
-          "experimental": null
-        },
-        {
-          "method": "to_geometry",
-          "function": "type::geometry",
-          "experimental": null
-        },
-        {
-          "method": "to_int",
-          "function": "type::int",
-          "experimental": null
-        },
-        {
-          "method": "to_number",
-          "function": "type::number",
-          "experimental": null
-        },
-        {
-          "method": "to_point",
-          "function": "type::point",
-          "experimental": null
-        },
-        {
-          "method": "to_range",
-          "function": "type::range",
-          "experimental": null
-        },
-        {
-          "method": "to_record",
-          "function": "type::record",
-          "experimental": null
-        },
-        {
-          "method": "to_set",
-          "function": "type::set",
-          "experimental": null
-        },
-        {
-          "method": "to_string",
-          "function": "type::string",
-          "experimental": null
-        },
-        {
-          "method": "to_string_lossy",
-          "function": "type::string_lossy",
-          "experimental": null
-        },
-        {
-          "method": "to_uuid",
-          "function": "type::uuid",
-          "experimental": null
-        },
-        {
-          "method": "type_of",
-          "function": "type::of",
-          "experimental": null
-        }
-      ]
-    },
-    {
-      "kind": "Object",
-      "methods": [
-        {
-          "method": "chain",
-          "function": "value::chain",
-          "experimental": null
-        },
-        {
-          "method": "diff",
-          "function": "value::diff",
-          "experimental": null
-        },
-        {
-          "method": "entries",
-          "function": "object::entries",
-          "experimental": null
-        },
-        {
-          "method": "expect",
-          "function": "value::expect",
-          "experimental": null
-        },
-        {
-          "method": "extend",
-          "function": "object::extend",
-          "experimental": null
-        },
-        {
-          "method": "is_array",
-          "function": "type::is_array",
-          "experimental": null
-        },
-        {
-          "method": "is_bool",
-          "function": "type::is_bool",
-          "experimental": null
-        },
-        {
-          "method": "is_bytes",
-          "function": "type::is_bytes",
-          "experimental": null
-        },
-        {
-          "method": "is_collection",
-          "function": "type::is_collection",
-          "experimental": null
-        },
-        {
-          "method": "is_datetime",
-          "function": "type::is_datetime",
-          "experimental": null
-        },
-        {
-          "method": "is_decimal",
-          "function": "type::is_decimal",
-          "experimental": null
-        },
-        {
-          "method": "is_duration",
-          "function": "type::is_duration",
-          "experimental": null
-        },
-        {
-          "method": "is_empty",
-          "function": "object::is_empty",
-          "experimental": null
-        },
-        {
-          "method": "is_float",
-          "function": "type::is_float",
-          "experimental": null
-        },
-        {
-          "method": "is_geometry",
-          "function": "type::is_geometry",
-          "experimental": null
-        },
-        {
-          "method": "is_int",
-          "function": "type::is_int",
-          "experimental": null
-        },
-        {
-          "method": "is_line",
-          "function": "type::is_line",
-          "experimental": null
-        },
-        {
-          "method": "is_multiline",
-          "function": "type::is_multiline",
-          "experimental": null
-        },
-        {
-          "method": "is_multipoint",
-          "function": "type::is_multipoint",
-          "experimental": null
-        },
-        {
-          "method": "is_multipolygon",
-          "function": "type::is_multipolygon",
-          "experimental": null
-        },
-        {
-          "method": "is_none",
-          "function": "type::is_none",
-          "experimental": null
-        },
-        {
-          "method": "is_null",
-          "function": "type::is_null",
-          "experimental": null
-        },
-        {
-          "method": "is_number",
-          "function": "type::is_number",
-          "experimental": null
-        },
-        {
-          "method": "is_object",
-          "function": "type::is_object",
-          "experimental": null
-        },
-        {
-          "method": "is_point",
-          "function": "type::is_point",
-          "experimental": null
-        },
-        {
-          "method": "is_polygon",
-          "function": "type::is_polygon",
-          "experimental": null
-        },
-        {
-          "method": "is_range",
-          "function": "type::is_range",
-          "experimental": null
-        },
-        {
-          "method": "is_record",
-          "function": "type::is_record",
-          "experimental": null
-        },
-        {
-          "method": "is_set",
-          "function": "type::is_set",
-          "experimental": null
-        },
-        {
-          "method": "is_string",
-          "function": "type::is_string",
-          "experimental": null
-        },
-        {
-          "method": "is_uuid",
-          "function": "type::is_uuid",
-          "experimental": null
-        },
-        {
-          "method": "keys",
-          "function": "object::keys",
-          "experimental": null
-        },
-        {
-          "method": "len",
-          "function": "object::len",
-          "experimental": null
-        },
-        {
-          "method": "patch",
-          "function": "value::patch",
-          "experimental": null
-        },
-        {
-          "method": "remove",
-          "function": "object::remove",
-          "experimental": null
-        },
-        {
-          "method": "repeat",
-          "function": "array::repeat",
-          "experimental": null
-        },
-        {
-          "method": "to_array",
-          "function": "type::array",
-          "experimental": null
-        },
-        {
-          "method": "to_bool",
-          "function": "type::bool",
-          "experimental": null
-        },
-        {
-          "method": "to_bytes",
-          "function": "type::bytes",
-          "experimental": null
-        },
-        {
-          "method": "to_datetime",
-          "function": "type::datetime",
-          "experimental": null
-        },
-        {
-          "method": "to_decimal",
-          "function": "type::decimal",
-          "experimental": null
-        },
-        {
-          "method": "to_duration",
-          "function": "type::duration",
-          "experimental": null
-        },
-        {
-          "method": "to_float",
-          "function": "type::float",
-          "experimental": null
-        },
-        {
-          "method": "to_geometry",
-          "function": "type::geometry",
-          "experimental": null
-        },
-        {
-          "method": "to_int",
-          "function": "type::int",
-          "experimental": null
-        },
-        {
-          "method": "to_number",
-          "function": "type::number",
-          "experimental": null
-        },
-        {
-          "method": "to_point",
-          "function": "type::point",
-          "experimental": null
-        },
-        {
-          "method": "to_range",
-          "function": "type::range",
-          "experimental": null
-        },
-        {
-          "method": "to_record",
-          "function": "type::record",
-          "experimental": null
-        },
-        {
-          "method": "to_set",
-          "function": "type::set",
-          "experimental": null
-        },
-        {
-          "method": "to_string",
-          "function": "type::string",
-          "experimental": null
-        },
-        {
-          "method": "to_string_lossy",
-          "function": "type::string_lossy",
-          "experimental": null
-        },
-        {
-          "method": "to_uuid",
-          "function": "type::uuid",
-          "experimental": null
-        },
-        {
-          "method": "type_of",
-          "function": "type::of",
-          "experimental": null
-        },
-        {
-          "method": "values",
-          "function": "object::values",
+          "method": "years",
+          "function": "interval::years",
           "experimental": null
         }
       ]
@@ -9134,11 +8709,6 @@
           "experimental": null
         },
         {
-          "method": "chain",
-          "function": "value::chain",
-          "experimental": null
-        },
-        {
           "method": "cos",
           "function": "math::cos",
           "experimental": null
@@ -9154,143 +8724,8 @@
           "experimental": null
         },
         {
-          "method": "diff",
-          "function": "value::diff",
-          "experimental": null
-        },
-        {
-          "method": "expect",
-          "function": "value::expect",
-          "experimental": null
-        },
-        {
           "method": "floor",
           "function": "math::floor",
-          "experimental": null
-        },
-        {
-          "method": "is_array",
-          "function": "type::is_array",
-          "experimental": null
-        },
-        {
-          "method": "is_bool",
-          "function": "type::is_bool",
-          "experimental": null
-        },
-        {
-          "method": "is_bytes",
-          "function": "type::is_bytes",
-          "experimental": null
-        },
-        {
-          "method": "is_collection",
-          "function": "type::is_collection",
-          "experimental": null
-        },
-        {
-          "method": "is_datetime",
-          "function": "type::is_datetime",
-          "experimental": null
-        },
-        {
-          "method": "is_decimal",
-          "function": "type::is_decimal",
-          "experimental": null
-        },
-        {
-          "method": "is_duration",
-          "function": "type::is_duration",
-          "experimental": null
-        },
-        {
-          "method": "is_float",
-          "function": "type::is_float",
-          "experimental": null
-        },
-        {
-          "method": "is_geometry",
-          "function": "type::is_geometry",
-          "experimental": null
-        },
-        {
-          "method": "is_int",
-          "function": "type::is_int",
-          "experimental": null
-        },
-        {
-          "method": "is_line",
-          "function": "type::is_line",
-          "experimental": null
-        },
-        {
-          "method": "is_multiline",
-          "function": "type::is_multiline",
-          "experimental": null
-        },
-        {
-          "method": "is_multipoint",
-          "function": "type::is_multipoint",
-          "experimental": null
-        },
-        {
-          "method": "is_multipolygon",
-          "function": "type::is_multipolygon",
-          "experimental": null
-        },
-        {
-          "method": "is_none",
-          "function": "type::is_none",
-          "experimental": null
-        },
-        {
-          "method": "is_null",
-          "function": "type::is_null",
-          "experimental": null
-        },
-        {
-          "method": "is_number",
-          "function": "type::is_number",
-          "experimental": null
-        },
-        {
-          "method": "is_object",
-          "function": "type::is_object",
-          "experimental": null
-        },
-        {
-          "method": "is_point",
-          "function": "type::is_point",
-          "experimental": null
-        },
-        {
-          "method": "is_polygon",
-          "function": "type::is_polygon",
-          "experimental": null
-        },
-        {
-          "method": "is_range",
-          "function": "type::is_range",
-          "experimental": null
-        },
-        {
-          "method": "is_record",
-          "function": "type::is_record",
-          "experimental": null
-        },
-        {
-          "method": "is_set",
-          "function": "type::is_set",
-          "experimental": null
-        },
-        {
-          "method": "is_string",
-          "function": "type::is_string",
-          "experimental": null
-        },
-        {
-          "method": "is_uuid",
-          "function": "type::is_uuid",
           "experimental": null
         },
         {
@@ -9314,18 +8749,8 @@
           "experimental": null
         },
         {
-          "method": "patch",
-          "function": "value::patch",
-          "experimental": null
-        },
-        {
           "method": "rad2deg",
           "function": "math::rad2deg",
-          "experimental": null
-        },
-        {
-          "method": "repeat",
-          "function": "array::repeat",
           "experimental": null
         },
         {
@@ -9347,95 +8772,215 @@
           "method": "tan",
           "function": "math::tan",
           "experimental": null
-        },
+        }
+      ]
+    },
+    {
+      "kind": "Object",
+      "methods": [
         {
-          "method": "to_array",
-          "function": "type::array",
+          "method": "entries",
+          "function": "object::entries",
           "experimental": null
         },
         {
-          "method": "to_bool",
-          "function": "type::bool",
+          "method": "extend",
+          "function": "object::extend",
           "experimental": null
         },
         {
-          "method": "to_bytes",
-          "function": "type::bytes",
+          "method": "is_empty",
+          "function": "object::is_empty",
           "experimental": null
         },
         {
-          "method": "to_datetime",
-          "function": "type::datetime",
+          "method": "keys",
+          "function": "object::keys",
           "experimental": null
         },
         {
-          "method": "to_decimal",
-          "function": "type::decimal",
+          "method": "len",
+          "function": "object::len",
           "experimental": null
         },
         {
-          "method": "to_duration",
-          "function": "type::duration",
+          "method": "remove",
+          "function": "object::remove",
           "experimental": null
         },
         {
-          "method": "to_float",
-          "function": "type::float",
+          "method": "values",
+          "function": "object::values",
+          "experimental": null
+        }
+      ]
+    },
+    {
+      "kind": "RecordId",
+      "methods": [
+        {
+          "method": "exists",
+          "function": "record::exists",
           "experimental": null
         },
         {
-          "method": "to_geometry",
-          "function": "type::geometry",
+          "method": "id",
+          "function": "record::id",
           "experimental": null
         },
         {
-          "method": "to_int",
-          "function": "type::int",
+          "method": "is_edge",
+          "function": "record::is_edge",
           "experimental": null
         },
         {
-          "method": "to_number",
-          "function": "type::number",
+          "method": "table",
+          "function": "record::table",
           "experimental": null
         },
         {
-          "method": "to_point",
-          "function": "type::point",
+          "method": "tb",
+          "function": "record::tb",
+          "experimental": null
+        }
+      ]
+    },
+    {
+      "kind": "Set",
+      "methods": [
+        {
+          "method": "add",
+          "function": "set::add",
           "experimental": null
         },
         {
-          "method": "to_range",
-          "function": "type::range",
+          "method": "all",
+          "function": "set::all",
           "experimental": null
         },
         {
-          "method": "to_record",
-          "function": "type::record",
+          "method": "any",
+          "function": "set::any",
           "experimental": null
         },
         {
-          "method": "to_set",
-          "function": "type::set",
+          "method": "at",
+          "function": "set::at",
           "experimental": null
         },
         {
-          "method": "to_string",
-          "function": "type::string",
+          "method": "complement",
+          "function": "set::complement",
           "experimental": null
         },
         {
-          "method": "to_string_lossy",
-          "function": "type::string_lossy",
+          "method": "contains",
+          "function": "set::contains",
           "experimental": null
         },
         {
-          "method": "to_uuid",
-          "function": "type::uuid",
+          "method": "difference",
+          "function": "set::difference",
           "experimental": null
         },
         {
-          "method": "type_of",
-          "function": "type::of",
+          "method": "every",
+          "function": "set::all",
+          "experimental": null
+        },
+        {
+          "method": "filter",
+          "function": "set::filter",
+          "experimental": null
+        },
+        {
+          "method": "find",
+          "function": "set::find",
+          "experimental": null
+        },
+        {
+          "method": "first",
+          "function": "set::first",
+          "experimental": null
+        },
+        {
+          "method": "flatten",
+          "function": "set::flatten",
+          "experimental": null
+        },
+        {
+          "method": "fold",
+          "function": "set::fold",
+          "experimental": null
+        },
+        {
+          "method": "includes",
+          "function": "set::any",
+          "experimental": null
+        },
+        {
+          "method": "intersect",
+          "function": "set::intersect",
+          "experimental": null
+        },
+        {
+          "method": "is_empty",
+          "function": "set::is_empty",
+          "experimental": null
+        },
+        {
+          "method": "join",
+          "function": "set::join",
+          "experimental": null
+        },
+        {
+          "method": "last",
+          "function": "set::last",
+          "experimental": null
+        },
+        {
+          "method": "len",
+          "function": "set::len",
+          "experimental": null
+        },
+        {
+          "method": "map",
+          "function": "set::map",
+          "experimental": null
+        },
+        {
+          "method": "max",
+          "function": "set::max",
+          "experimental": null
+        },
+        {
+          "method": "min",
+          "function": "set::min",
+          "experimental": null
+        },
+        {
+          "method": "reduce",
+          "function": "set::reduce",
+          "experimental": null
+        },
+        {
+          "method": "remove",
+          "function": "set::remove",
+          "experimental": null
+        },
+        {
+          "method": "slice",
+          "function": "set::slice",
+          "experimental": null
+        },
+        {
+          "method": "some",
+          "function": "set::any",
+          "experimental": null
+        },
+        {
+          "method": "union",
+          "function": "set::union",
           "experimental": null
         }
       ]
@@ -9449,11 +8994,6 @@
           "experimental": null
         },
         {
-          "method": "chain",
-          "function": "value::chain",
-          "experimental": null
-        },
-        {
           "method": "concat",
           "function": "string::concat",
           "experimental": null
@@ -9461,11 +9001,6 @@
         {
           "method": "contains",
           "function": "string::contains",
-          "experimental": null
-        },
-        {
-          "method": "diff",
-          "function": "value::diff",
           "experimental": null
         },
         {
@@ -9499,11 +9034,6 @@
           "experimental": null
         },
         {
-          "method": "expect",
-          "function": "value::expect",
-          "experimental": null
-        },
-        {
           "method": "html_encode",
           "function": "string::html::encode",
           "experimental": null
@@ -9524,28 +9054,8 @@
           "experimental": null
         },
         {
-          "method": "is_array",
-          "function": "type::is_array",
-          "experimental": null
-        },
-        {
           "method": "is_ascii",
           "function": "string::is_ascii",
-          "experimental": null
-        },
-        {
-          "method": "is_bool",
-          "function": "type::is_bool",
-          "experimental": null
-        },
-        {
-          "method": "is_bytes",
-          "function": "type::is_bytes",
-          "experimental": null
-        },
-        {
-          "method": "is_collection",
-          "function": "type::is_collection",
           "experimental": null
         },
         {
@@ -9554,18 +9064,8 @@
           "experimental": null
         },
         {
-          "method": "is_decimal",
-          "function": "type::is_decimal",
-          "experimental": null
-        },
-        {
           "method": "is_domain",
           "function": "string::is_domain",
-          "experimental": null
-        },
-        {
-          "method": "is_duration",
-          "function": "type::is_duration",
           "experimental": null
         },
         {
@@ -9574,23 +9074,8 @@
           "experimental": null
         },
         {
-          "method": "is_float",
-          "function": "type::is_float",
-          "experimental": null
-        },
-        {
-          "method": "is_geometry",
-          "function": "type::is_geometry",
-          "experimental": null
-        },
-        {
           "method": "is_hexadecimal",
           "function": "string::is_hexadecimal",
-          "experimental": null
-        },
-        {
-          "method": "is_int",
-          "function": "type::is_int",
           "experimental": null
         },
         {
@@ -9614,68 +9099,13 @@
           "experimental": null
         },
         {
-          "method": "is_line",
-          "function": "type::is_line",
-          "experimental": null
-        },
-        {
           "method": "is_longitude",
           "function": "string::is_longitude",
           "experimental": null
         },
         {
-          "method": "is_multiline",
-          "function": "type::is_multiline",
-          "experimental": null
-        },
-        {
-          "method": "is_multipoint",
-          "function": "type::is_multipoint",
-          "experimental": null
-        },
-        {
-          "method": "is_multipolygon",
-          "function": "type::is_multipolygon",
-          "experimental": null
-        },
-        {
-          "method": "is_none",
-          "function": "type::is_none",
-          "experimental": null
-        },
-        {
-          "method": "is_null",
-          "function": "type::is_null",
-          "experimental": null
-        },
-        {
-          "method": "is_number",
-          "function": "type::is_number",
-          "experimental": null
-        },
-        {
           "method": "is_numeric",
           "function": "string::is_numeric",
-          "experimental": null
-        },
-        {
-          "method": "is_object",
-          "function": "type::is_object",
-          "experimental": null
-        },
-        {
-          "method": "is_point",
-          "function": "type::is_point",
-          "experimental": null
-        },
-        {
-          "method": "is_polygon",
-          "function": "type::is_polygon",
-          "experimental": null
-        },
-        {
-          "method": "is_range",
-          "function": "type::is_range",
           "experimental": null
         },
         {
@@ -9686,11 +9116,6 @@
         {
           "method": "is_semver",
           "function": "string::is_semver",
-          "experimental": null
-        },
-        {
-          "method": "is_string",
-          "function": "type::is_string",
           "experimental": null
         },
         {
@@ -9726,11 +9151,6 @@
         {
           "method": "matches",
           "function": "string::matches",
-          "experimental": null
-        },
-        {
-          "method": "patch",
-          "function": "value::patch",
           "experimental": null
         },
         {
@@ -9844,98 +9264,8 @@
           "experimental": null
         },
         {
-          "method": "to_array",
-          "function": "type::array",
-          "experimental": null
-        },
-        {
-          "method": "to_bool",
-          "function": "type::bool",
-          "experimental": null
-        },
-        {
-          "method": "to_bytes",
-          "function": "type::bytes",
-          "experimental": null
-        },
-        {
-          "method": "to_datetime",
-          "function": "type::datetime",
-          "experimental": null
-        },
-        {
-          "method": "to_decimal",
-          "function": "type::decimal",
-          "experimental": null
-        },
-        {
-          "method": "to_duration",
-          "function": "type::duration",
-          "experimental": null
-        },
-        {
-          "method": "to_float",
-          "function": "type::float",
-          "experimental": null
-        },
-        {
-          "method": "to_geometry",
-          "function": "type::geometry",
-          "experimental": null
-        },
-        {
-          "method": "to_int",
-          "function": "type::int",
-          "experimental": null
-        },
-        {
-          "method": "to_number",
-          "function": "type::number",
-          "experimental": null
-        },
-        {
-          "method": "to_point",
-          "function": "type::point",
-          "experimental": null
-        },
-        {
-          "method": "to_range",
-          "function": "type::range",
-          "experimental": null
-        },
-        {
-          "method": "to_record",
-          "function": "type::record",
-          "experimental": null
-        },
-        {
-          "method": "to_set",
-          "function": "type::set",
-          "experimental": null
-        },
-        {
-          "method": "to_string",
-          "function": "type::string",
-          "experimental": null
-        },
-        {
-          "method": "to_string_lossy",
-          "function": "type::string_lossy",
-          "experimental": null
-        },
-        {
-          "method": "to_uuid",
-          "function": "type::uuid",
-          "experimental": null
-        },
-        {
           "method": "trim",
           "function": "string::trim",
-          "experimental": null
-        },
-        {
-          "method": "type_of",
-          "function": "type::of",
           "experimental": null
         },
         {
@@ -9951,16 +9281,61 @@
       ]
     },
     {
-      "kind": "Datetime",
+      "kind": "Time",
       "methods": [
         {
-          "method": "ceil",
-          "function": "time::ceil",
+          "method": "extract",
+          "function": "time::extract",
           "experimental": null
         },
         {
-          "method": "chain",
-          "function": "value::chain",
+          "method": "hour",
+          "function": "time::hour",
+          "experimental": null
+        },
+        {
+          "method": "micros",
+          "function": "time::micros",
+          "experimental": null
+        },
+        {
+          "method": "millis",
+          "function": "time::millis",
+          "experimental": null
+        },
+        {
+          "method": "minute",
+          "function": "time::minute",
+          "experimental": null
+        },
+        {
+          "method": "nano",
+          "function": "time::nano",
+          "experimental": null
+        },
+        {
+          "method": "second",
+          "function": "time::second",
+          "experimental": null
+        },
+        {
+          "method": "trunc",
+          "function": "time::trunc",
+          "experimental": null
+        }
+      ]
+    },
+    {
+      "kind": "Timestamp",
+      "methods": [
+        {
+          "method": "age",
+          "function": "time::age",
+          "experimental": null
+        },
+        {
+          "method": "ceil",
+          "function": "time::ceil",
           "experimental": null
         },
         {
@@ -9969,13 +9344,8 @@
           "experimental": null
         },
         {
-          "method": "diff",
-          "function": "value::diff",
-          "experimental": null
-        },
-        {
-          "method": "expect",
-          "function": "value::expect",
+          "method": "extract",
+          "function": "time::extract",
           "experimental": null
         },
         {
@@ -9999,133 +9369,8 @@
           "experimental": null
         },
         {
-          "method": "is_array",
-          "function": "type::is_array",
-          "experimental": null
-        },
-        {
-          "method": "is_bool",
-          "function": "type::is_bool",
-          "experimental": null
-        },
-        {
-          "method": "is_bytes",
-          "function": "type::is_bytes",
-          "experimental": null
-        },
-        {
-          "method": "is_collection",
-          "function": "type::is_collection",
-          "experimental": null
-        },
-        {
-          "method": "is_datetime",
-          "function": "type::is_datetime",
-          "experimental": null
-        },
-        {
-          "method": "is_decimal",
-          "function": "type::is_decimal",
-          "experimental": null
-        },
-        {
-          "method": "is_duration",
-          "function": "type::is_duration",
-          "experimental": null
-        },
-        {
-          "method": "is_float",
-          "function": "type::is_float",
-          "experimental": null
-        },
-        {
-          "method": "is_geometry",
-          "function": "type::is_geometry",
-          "experimental": null
-        },
-        {
-          "method": "is_int",
-          "function": "type::is_int",
-          "experimental": null
-        },
-        {
           "method": "is_leap_year",
           "function": "time::is_leap_year",
-          "experimental": null
-        },
-        {
-          "method": "is_line",
-          "function": "type::is_line",
-          "experimental": null
-        },
-        {
-          "method": "is_multiline",
-          "function": "type::is_multiline",
-          "experimental": null
-        },
-        {
-          "method": "is_multipoint",
-          "function": "type::is_multipoint",
-          "experimental": null
-        },
-        {
-          "method": "is_multipolygon",
-          "function": "type::is_multipolygon",
-          "experimental": null
-        },
-        {
-          "method": "is_none",
-          "function": "type::is_none",
-          "experimental": null
-        },
-        {
-          "method": "is_null",
-          "function": "type::is_null",
-          "experimental": null
-        },
-        {
-          "method": "is_number",
-          "function": "type::is_number",
-          "experimental": null
-        },
-        {
-          "method": "is_object",
-          "function": "type::is_object",
-          "experimental": null
-        },
-        {
-          "method": "is_point",
-          "function": "type::is_point",
-          "experimental": null
-        },
-        {
-          "method": "is_polygon",
-          "function": "type::is_polygon",
-          "experimental": null
-        },
-        {
-          "method": "is_range",
-          "function": "type::is_range",
-          "experimental": null
-        },
-        {
-          "method": "is_record",
-          "function": "type::is_record",
-          "experimental": null
-        },
-        {
-          "method": "is_set",
-          "function": "type::is_set",
-          "experimental": null
-        },
-        {
-          "method": "is_string",
-          "function": "type::is_string",
-          "experimental": null
-        },
-        {
-          "method": "is_uuid",
-          "function": "type::is_uuid",
           "experimental": null
         },
         {
@@ -10151,16 +9396,6 @@
         {
           "method": "nano",
           "function": "time::nano",
-          "experimental": null
-        },
-        {
-          "method": "patch",
-          "function": "value::patch",
-          "experimental": null
-        },
-        {
-          "method": "repeat",
-          "function": "array::repeat",
           "experimental": null
         },
         {
@@ -10209,98 +9444,8 @@
           "experimental": null
         },
         {
-          "method": "to_array",
-          "function": "type::array",
-          "experimental": null
-        },
-        {
-          "method": "to_bool",
-          "function": "type::bool",
-          "experimental": null
-        },
-        {
-          "method": "to_bytes",
-          "function": "type::bytes",
-          "experimental": null
-        },
-        {
-          "method": "to_datetime",
-          "function": "type::datetime",
-          "experimental": null
-        },
-        {
-          "method": "to_decimal",
-          "function": "type::decimal",
-          "experimental": null
-        },
-        {
-          "method": "to_duration",
-          "function": "type::duration",
-          "experimental": null
-        },
-        {
-          "method": "to_float",
-          "function": "type::float",
-          "experimental": null
-        },
-        {
-          "method": "to_geometry",
-          "function": "type::geometry",
-          "experimental": null
-        },
-        {
-          "method": "to_int",
-          "function": "type::int",
-          "experimental": null
-        },
-        {
-          "method": "to_number",
-          "function": "type::number",
-          "experimental": null
-        },
-        {
-          "method": "to_point",
-          "function": "type::point",
-          "experimental": null
-        },
-        {
-          "method": "to_range",
-          "function": "type::range",
-          "experimental": null
-        },
-        {
-          "method": "to_record",
-          "function": "type::record",
-          "experimental": null
-        },
-        {
-          "method": "to_set",
-          "function": "type::set",
-          "experimental": null
-        },
-        {
-          "method": "to_string",
-          "function": "type::string",
-          "experimental": null
-        },
-        {
-          "method": "to_string_lossy",
-          "function": "type::string_lossy",
-          "experimental": null
-        },
-        {
-          "method": "to_uuid",
-          "function": "type::uuid",
-          "experimental": null
-        },
-        {
-          "method": "type_of",
-          "function": "type::of",
-          "experimental": null
-        },
-        {
-          "method": "unix",
-          "function": "time::unix",
+          "method": "trunc",
+          "function": "time::trunc",
           "experimental": null
         },
         {
@@ -10321,556 +9466,6 @@
         {
           "method": "year",
           "function": "time::year",
-          "experimental": null
-        }
-      ]
-    },
-    {
-      "kind": "File",
-      "methods": [
-        {
-          "method": "bucket",
-          "function": "file::bucket",
-          "experimental": "Files"
-        },
-        {
-          "method": "chain",
-          "function": "value::chain",
-          "experimental": null
-        },
-        {
-          "method": "copy",
-          "function": "file::copy",
-          "experimental": "Files"
-        },
-        {
-          "method": "copy_if_not_exists",
-          "function": "file::copy_if_not_exists",
-          "experimental": "Files"
-        },
-        {
-          "method": "delete",
-          "function": "file::delete",
-          "experimental": "Files"
-        },
-        {
-          "method": "diff",
-          "function": "value::diff",
-          "experimental": null
-        },
-        {
-          "method": "exists",
-          "function": "file::exists",
-          "experimental": "Files"
-        },
-        {
-          "method": "expect",
-          "function": "value::expect",
-          "experimental": null
-        },
-        {
-          "method": "get",
-          "function": "file::get",
-          "experimental": "Files"
-        },
-        {
-          "method": "head",
-          "function": "file::head",
-          "experimental": "Files"
-        },
-        {
-          "method": "is_array",
-          "function": "type::is_array",
-          "experimental": null
-        },
-        {
-          "method": "is_bool",
-          "function": "type::is_bool",
-          "experimental": null
-        },
-        {
-          "method": "is_bytes",
-          "function": "type::is_bytes",
-          "experimental": null
-        },
-        {
-          "method": "is_collection",
-          "function": "type::is_collection",
-          "experimental": null
-        },
-        {
-          "method": "is_datetime",
-          "function": "type::is_datetime",
-          "experimental": null
-        },
-        {
-          "method": "is_decimal",
-          "function": "type::is_decimal",
-          "experimental": null
-        },
-        {
-          "method": "is_duration",
-          "function": "type::is_duration",
-          "experimental": null
-        },
-        {
-          "method": "is_float",
-          "function": "type::is_float",
-          "experimental": null
-        },
-        {
-          "method": "is_geometry",
-          "function": "type::is_geometry",
-          "experimental": null
-        },
-        {
-          "method": "is_int",
-          "function": "type::is_int",
-          "experimental": null
-        },
-        {
-          "method": "is_line",
-          "function": "type::is_line",
-          "experimental": null
-        },
-        {
-          "method": "is_multiline",
-          "function": "type::is_multiline",
-          "experimental": null
-        },
-        {
-          "method": "is_multipoint",
-          "function": "type::is_multipoint",
-          "experimental": null
-        },
-        {
-          "method": "is_multipolygon",
-          "function": "type::is_multipolygon",
-          "experimental": null
-        },
-        {
-          "method": "is_none",
-          "function": "type::is_none",
-          "experimental": null
-        },
-        {
-          "method": "is_null",
-          "function": "type::is_null",
-          "experimental": null
-        },
-        {
-          "method": "is_number",
-          "function": "type::is_number",
-          "experimental": null
-        },
-        {
-          "method": "is_object",
-          "function": "type::is_object",
-          "experimental": null
-        },
-        {
-          "method": "is_point",
-          "function": "type::is_point",
-          "experimental": null
-        },
-        {
-          "method": "is_polygon",
-          "function": "type::is_polygon",
-          "experimental": null
-        },
-        {
-          "method": "is_range",
-          "function": "type::is_range",
-          "experimental": null
-        },
-        {
-          "method": "is_record",
-          "function": "type::is_record",
-          "experimental": null
-        },
-        {
-          "method": "is_set",
-          "function": "type::is_set",
-          "experimental": null
-        },
-        {
-          "method": "is_string",
-          "function": "type::is_string",
-          "experimental": null
-        },
-        {
-          "method": "is_uuid",
-          "function": "type::is_uuid",
-          "experimental": null
-        },
-        {
-          "method": "key",
-          "function": "file::key",
-          "experimental": "Files"
-        },
-        {
-          "method": "patch",
-          "function": "value::patch",
-          "experimental": null
-        },
-        {
-          "method": "put",
-          "function": "file::put",
-          "experimental": "Files"
-        },
-        {
-          "method": "put_if_not_exists",
-          "function": "file::put_if_not_exists",
-          "experimental": "Files"
-        },
-        {
-          "method": "rename",
-          "function": "file::rename",
-          "experimental": "Files"
-        },
-        {
-          "method": "rename_if_not_exists",
-          "function": "file::rename_if_not_exists",
-          "experimental": "Files"
-        },
-        {
-          "method": "repeat",
-          "function": "array::repeat",
-          "experimental": null
-        },
-        {
-          "method": "to_array",
-          "function": "type::array",
-          "experimental": null
-        },
-        {
-          "method": "to_bool",
-          "function": "type::bool",
-          "experimental": null
-        },
-        {
-          "method": "to_bytes",
-          "function": "type::bytes",
-          "experimental": null
-        },
-        {
-          "method": "to_datetime",
-          "function": "type::datetime",
-          "experimental": null
-        },
-        {
-          "method": "to_decimal",
-          "function": "type::decimal",
-          "experimental": null
-        },
-        {
-          "method": "to_duration",
-          "function": "type::duration",
-          "experimental": null
-        },
-        {
-          "method": "to_float",
-          "function": "type::float",
-          "experimental": null
-        },
-        {
-          "method": "to_geometry",
-          "function": "type::geometry",
-          "experimental": null
-        },
-        {
-          "method": "to_int",
-          "function": "type::int",
-          "experimental": null
-        },
-        {
-          "method": "to_number",
-          "function": "type::number",
-          "experimental": null
-        },
-        {
-          "method": "to_point",
-          "function": "type::point",
-          "experimental": null
-        },
-        {
-          "method": "to_range",
-          "function": "type::range",
-          "experimental": null
-        },
-        {
-          "method": "to_record",
-          "function": "type::record",
-          "experimental": null
-        },
-        {
-          "method": "to_set",
-          "function": "type::set",
-          "experimental": null
-        },
-        {
-          "method": "to_string",
-          "function": "type::string",
-          "experimental": null
-        },
-        {
-          "method": "to_string_lossy",
-          "function": "type::string_lossy",
-          "experimental": null
-        },
-        {
-          "method": "to_uuid",
-          "function": "type::uuid",
-          "experimental": null
-        },
-        {
-          "method": "type_of",
-          "function": "type::of",
-          "experimental": null
-        }
-      ]
-    },
-    {
-      "kind": null,
-      "methods": [
-        {
-          "method": "chain",
-          "function": "value::chain",
-          "experimental": null
-        },
-        {
-          "method": "diff",
-          "function": "value::diff",
-          "experimental": null
-        },
-        {
-          "method": "expect",
-          "function": "value::expect",
-          "experimental": null
-        },
-        {
-          "method": "is_array",
-          "function": "type::is_array",
-          "experimental": null
-        },
-        {
-          "method": "is_bool",
-          "function": "type::is_bool",
-          "experimental": null
-        },
-        {
-          "method": "is_bytes",
-          "function": "type::is_bytes",
-          "experimental": null
-        },
-        {
-          "method": "is_collection",
-          "function": "type::is_collection",
-          "experimental": null
-        },
-        {
-          "method": "is_datetime",
-          "function": "type::is_datetime",
-          "experimental": null
-        },
-        {
-          "method": "is_decimal",
-          "function": "type::is_decimal",
-          "experimental": null
-        },
-        {
-          "method": "is_duration",
-          "function": "type::is_duration",
-          "experimental": null
-        },
-        {
-          "method": "is_float",
-          "function": "type::is_float",
-          "experimental": null
-        },
-        {
-          "method": "is_geometry",
-          "function": "type::is_geometry",
-          "experimental": null
-        },
-        {
-          "method": "is_int",
-          "function": "type::is_int",
-          "experimental": null
-        },
-        {
-          "method": "is_line",
-          "function": "type::is_line",
-          "experimental": null
-        },
-        {
-          "method": "is_multiline",
-          "function": "type::is_multiline",
-          "experimental": null
-        },
-        {
-          "method": "is_multipoint",
-          "function": "type::is_multipoint",
-          "experimental": null
-        },
-        {
-          "method": "is_multipolygon",
-          "function": "type::is_multipolygon",
-          "experimental": null
-        },
-        {
-          "method": "is_none",
-          "function": "type::is_none",
-          "experimental": null
-        },
-        {
-          "method": "is_null",
-          "function": "type::is_null",
-          "experimental": null
-        },
-        {
-          "method": "is_number",
-          "function": "type::is_number",
-          "experimental": null
-        },
-        {
-          "method": "is_object",
-          "function": "type::is_object",
-          "experimental": null
-        },
-        {
-          "method": "is_point",
-          "function": "type::is_point",
-          "experimental": null
-        },
-        {
-          "method": "is_polygon",
-          "function": "type::is_polygon",
-          "experimental": null
-        },
-        {
-          "method": "is_range",
-          "function": "type::is_range",
-          "experimental": null
-        },
-        {
-          "method": "is_record",
-          "function": "type::is_record",
-          "experimental": null
-        },
-        {
-          "method": "is_set",
-          "function": "type::is_set",
-          "experimental": null
-        },
-        {
-          "method": "is_string",
-          "function": "type::is_string",
-          "experimental": null
-        },
-        {
-          "method": "is_uuid",
-          "function": "type::is_uuid",
-          "experimental": null
-        },
-        {
-          "method": "patch",
-          "function": "value::patch",
-          "experimental": null
-        },
-        {
-          "method": "repeat",
-          "function": "array::repeat",
-          "experimental": null
-        },
-        {
-          "method": "to_array",
-          "function": "type::array",
-          "experimental": null
-        },
-        {
-          "method": "to_bool",
-          "function": "type::bool",
-          "experimental": null
-        },
-        {
-          "method": "to_bytes",
-          "function": "type::bytes",
-          "experimental": null
-        },
-        {
-          "method": "to_datetime",
-          "function": "type::datetime",
-          "experimental": null
-        },
-        {
-          "method": "to_decimal",
-          "function": "type::decimal",
-          "experimental": null
-        },
-        {
-          "method": "to_duration",
-          "function": "type::duration",
-          "experimental": null
-        },
-        {
-          "method": "to_float",
-          "function": "type::float",
-          "experimental": null
-        },
-        {
-          "method": "to_geometry",
-          "function": "type::geometry",
-          "experimental": null
-        },
-        {
-          "method": "to_int",
-          "function": "type::int",
-          "experimental": null
-        },
-        {
-          "method": "to_number",
-          "function": "type::number",
-          "experimental": null
-        },
-        {
-          "method": "to_point",
-          "function": "type::point",
-          "experimental": null
-        },
-        {
-          "method": "to_range",
-          "function": "type::range",
-          "experimental": null
-        },
-        {
-          "method": "to_record",
-          "function": "type::record",
-          "experimental": null
-        },
-        {
-          "method": "to_set",
-          "function": "type::set",
-          "experimental": null
-        },
-        {
-          "method": "to_string",
-          "function": "type::string",
-          "experimental": null
-        },
-        {
-          "method": "to_string_lossy",
-          "function": "type::string_lossy",
-          "experimental": null
-        },
-        {
-          "method": "to_uuid",
-          "function": "type::uuid",
-          "experimental": null
-        },
-        {
-          "method": "type_of",
-          "function": "type::of",
           "experimental": null
         }
       ]

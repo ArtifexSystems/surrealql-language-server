@@ -18,7 +18,10 @@ use std::collections::BTreeMap;
 use std::path::Path;
 
 use quote::ToTokens;
-use syn::{FnArg, Item, ItemFn, ItemMod, Pat, ReturnType, Type, Visibility};
+use syn::parse::{Parse, ParseStream};
+use syn::{
+    FnArg, Ident, Item, ItemFn, ItemMacro, ItemMod, Pat, ReturnType, Token, Type, Visibility,
+};
 
 use crate::engine_tables::strip_raw;
 use crate::kinds::{Param, is_context_type, map_type};
@@ -115,6 +118,24 @@ fn walk(items: &[Item], module_path: &str, out: &mut BTreeMap<String, Implementa
                     out.insert(implementation.path.clone(), implementation);
                 }
             }
+            // v4 defines the synchronous families with `now! { name = walk(Args); }`,
+            // which expands to `pub fn name(args: Args) -> Result<Value>`. The
+            // tokens are the signature; the expansion is not in the source.
+            Item::Macro(mac) if mac.mac.path.is_ident("now") => {
+                read_now_macro(mac, module_path, out);
+            }
+            // `time_kinds` spells its accessors as macros. The signature is the
+            // macro, not the invocation: one optional value, or a value and a
+            // number for the setters.
+            Item::Macro(mac)
+                if mac.mac.path.is_ident("calendar_accessor")
+                    || mac.mac.path.is_ident("clock_accessor") =>
+            {
+                read_fixed_signature(mac, module_path, "(Optional<Value>,)", out);
+            }
+            Item::Macro(mac) if mac.mac.path.is_ident("setter") => {
+                read_fixed_signature(mac, module_path, "(Value, Number)", out);
+            }
             Item::Mod(ItemMod {
                 vis,
                 ident,
@@ -134,6 +155,88 @@ fn walk(items: &[Item], module_path: &str, out: &mut BTreeMap<String, Implementa
 
 fn is_public(vis: &Visibility) -> bool {
     matches!(vis, Visibility::Public(_))
+}
+
+struct NowArm {
+    name: Ident,
+    args: Type,
+}
+
+struct NowBlock {
+    arms: Vec<NowArm>,
+}
+
+impl Parse for NowBlock {
+    fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
+        let mut arms = Vec::new();
+        while !input.is_empty() {
+            while input.peek(Token![#]) {
+                let _ = input.call(syn::Attribute::parse_outer)?;
+            }
+            let name: Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+            let _walk: Ident = input.parse()?;
+            let content;
+            syn::parenthesized!(content in input);
+            let args: Type = content.parse()?;
+            input.parse::<Token![;]>()?;
+            arms.push(NowArm { name, args });
+        }
+        Ok(Self { arms })
+    }
+}
+
+fn read_fixed_signature(
+    mac: &ItemMacro,
+    module_path: &str,
+    ty_source: &str,
+    out: &mut BTreeMap<String, Implementation>,
+) {
+    let Some(proc_macro2::TokenTree::Ident(name)) = mac.mac.tokens.clone().into_iter().next()
+    else {
+        return;
+    };
+    let Ok(ty) = syn::parse_str::<Type>(ty_source) else {
+        return;
+    };
+    let pattern = Pat::Wild(syn::PatWild {
+        attrs: Vec::new(),
+        underscore_token: Default::default(),
+    });
+    let Some(params) = read_params(&ty, &pattern) else {
+        return;
+    };
+    let implementation = Implementation {
+        path: format!("{module_path}::{}", strip_raw(&name.to_string())),
+        params,
+        is_async: false,
+    };
+    out.insert(implementation.path.clone(), implementation);
+}
+
+fn read_now_macro(mac: &ItemMacro, module_path: &str, out: &mut BTreeMap<String, Implementation>) {
+    let block = match syn::parse2::<NowBlock>(mac.mac.tokens.clone()) {
+        Ok(block) => block,
+        Err(error) => {
+            eprintln!("cannot read a now! invocation in {module_path}: {error}");
+            return;
+        }
+    };
+    let pattern = Pat::Wild(syn::PatWild {
+        attrs: Vec::new(),
+        underscore_token: Default::default(),
+    });
+    for arm in block.arms {
+        let Some(params) = read_params(&arm.args, &pattern) else {
+            continue;
+        };
+        let implementation = Implementation {
+            path: format!("{module_path}::{}", strip_raw(&arm.name.to_string())),
+            params,
+            is_async: false,
+        };
+        out.insert(implementation.path.clone(), implementation);
+    }
 }
 
 /// One `pub fn` → its user-visible parameters.
@@ -306,6 +409,32 @@ mod tests {
         let mut out = BTreeMap::new();
         walk(&file.items, "string", &mut out);
         out
+    }
+
+    #[test]
+    fn a_leading_closure_runner_is_not_an_argument() {
+        let found = parse(
+            "pub async fn all(ev: Option<&dyn ClosureEvaluator>, (array, Optional(check)): (Array, Optional<Value>)) -> Result<Value> { todo!() }",
+        );
+        let implementation = &found["string::all"];
+        assert_eq!(implementation.params.len(), 2);
+        assert_eq!(implementation.params[1].form, ParamForm::Optional);
+    }
+
+    #[test]
+    fn a_calendar_accessor_takes_one_optional_value() {
+        let found = parse(r#"calendar_accessor!(year, "time::year", super::time::year);"#);
+        assert_eq!(found["string::year"].params.len(), 1);
+        assert_eq!(found["string::year"].params[0].form, ParamForm::Optional);
+    }
+
+    #[test]
+    fn a_now_macro_is_the_expanded_signature() {
+        let found =
+            parse("now! { add = add_walk((Array, Value)); concat = concat_walk(Rest<Array>); }");
+        assert_eq!(found["string::add"].params.len(), 2);
+        assert_eq!(found["string::add"].params[0].ty, "array");
+        assert_eq!(found["string::concat"].params.len(), 1);
     }
 
     #[test]

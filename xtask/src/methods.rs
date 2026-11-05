@@ -60,8 +60,25 @@ pub struct Receiver {
     pub methods: Vec<MethodArm>,
 }
 
-/// Read every receiver table out of `fnc/mod.rs`.
+/// Read every receiver table.
+///
+/// SurrealDB 3 keeps them in `fn idiom` inside `fnc/mod.rs`. SurrealDB 4
+/// registers them from `exec/function/method.rs` instead.
 pub fn parse(fnc_mod_rs: &Path) -> Result<Vec<Receiver>, String> {
+    let source = std::fs::read_to_string(fnc_mod_rs)
+        .map_err(|error| format!("cannot read {}: {error}", fnc_mod_rs.display()))?;
+    if !source.contains("fn idiom") {
+        let method_rs = fnc_mod_rs
+            .parent()
+            .and_then(|fnc| fnc.parent())
+            .map(|src| src.join("exec/function/method.rs"))
+            .ok_or_else(|| format!("no method registry beside {}", fnc_mod_rs.display()))?;
+        return parse_registry(&method_rs);
+    }
+    parse_idiom(fnc_mod_rs)
+}
+
+fn parse_idiom(fnc_mod_rs: &Path) -> Result<Vec<Receiver>, String> {
     let source = std::fs::read_to_string(fnc_mod_rs)
         .map_err(|error| format!("cannot read {}: {error}", fnc_mod_rs.display()))?;
     let file = syn::parse_file(&source)
@@ -128,6 +145,191 @@ pub fn parse(fnc_mod_rs: &Path) -> Result<Vec<Receiver>, String> {
     }
 
     Ok(receivers)
+}
+
+/// `build_method_registry` in SurrealDB 4: one call per method arm.
+fn parse_registry(method_rs: &Path) -> Result<Vec<Receiver>, String> {
+    let receivers = read_method_registry(method_rs)?;
+    if receivers.len() < 11 {
+        return Err(format!(
+            "found only {} receiver tables, expected at least 11",
+            receivers.len()
+        ));
+    }
+    let arms: usize = receivers.iter().map(|entry| entry.methods.len()).sum();
+    // SurrealDB 4's registry is one call per arm, about 370, rather than the
+    // old idiom match that repeated a method on every receiver.
+    if arms < 300 {
+        return Err(format!(
+            "read only {arms} method arms from {} — the registry calls moved",
+            method_rs.display()
+        ));
+    }
+    Ok(receivers)
+}
+
+fn read_method_registry(method_rs: &Path) -> Result<Vec<Receiver>, String> {
+    let source = std::fs::read_to_string(method_rs)
+        .map_err(|error| format!("cannot read {}: {error}", method_rs.display()))?;
+    let file = syn::parse_file(&source)
+        .map_err(|error| format!("cannot parse {}: {error}", method_rs.display()))?;
+    let function = file
+        .items
+        .iter()
+        .find_map(|item| match item {
+            Item::Fn(function) if function.sig.ident == "build_method_registry" => Some(function),
+            _ => None,
+        })
+        .ok_or_else(|| format!("no `build_method_registry` in {}", method_rs.display()))?;
+
+    let mut by_kind: BTreeMap<String, Vec<MethodArm>> = BTreeMap::new();
+    let mut aliases = Vec::new();
+    collect_registrations(&function.block.stmts, &mut by_kind, &mut aliases);
+    for (alias, target) in aliases {
+        let copied: Vec<(String, MethodArm)> = by_kind
+            .iter()
+            .flat_map(|(kind, arms)| {
+                arms.iter().filter(|arm| arm.method == target).map(|arm| {
+                    (
+                        kind.clone(),
+                        MethodArm {
+                            method: alias.clone(),
+                            path: arm.path.clone(),
+                            experimental: arm.experimental.clone(),
+                        },
+                    )
+                })
+            })
+            .collect();
+        for (kind, arm) in copied {
+            by_kind.entry(kind).or_default().push(arm);
+        }
+    }
+    Ok(by_kind
+        .into_iter()
+        .map(|(kind, methods)| Receiver { kind, methods })
+        .collect())
+}
+
+fn collect_registrations(
+    statements: &[syn::Stmt],
+    by_kind: &mut BTreeMap<String, Vec<MethodArm>>,
+    aliases: &mut Vec<(String, String)>,
+) {
+    for statement in statements {
+        let expression = match statement {
+            syn::Stmt::Expr(expression, _) => expression,
+            syn::Stmt::Local(local) => {
+                if let Some(init) = &local.init {
+                    walk_registration(&init.expr, by_kind, aliases);
+                }
+                continue;
+            }
+            syn::Stmt::Item(_) | syn::Stmt::Macro(_) => continue,
+        };
+        walk_registration(expression, by_kind, aliases);
+    }
+}
+
+fn walk_registration(
+    expression: &Expr,
+    by_kind: &mut BTreeMap<String, Vec<MethodArm>>,
+    aliases: &mut Vec<(String, String)>,
+) {
+    match expression {
+        Expr::MethodCall(call) => {
+            record_registration(&call.method.to_string(), &call.args, by_kind, aliases);
+            for argument in &call.args {
+                walk_registration(argument, by_kind, aliases);
+            }
+        }
+        Expr::Block(block) => collect_registrations(&block.block.stmts, by_kind, aliases),
+        Expr::If(item) => {
+            collect_registrations(&item.then_branch.stmts, by_kind, aliases);
+            if let Some((_, branch)) = &item.else_branch {
+                walk_registration(branch, by_kind, aliases);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn record_registration(
+    name: &str,
+    args: &syn::punctuated::Punctuated<Expr, syn::Token![,]>,
+    by_kind: &mut BTreeMap<String, Vec<MethodArm>>,
+    aliases: &mut Vec<(String, String)>,
+) {
+    let arguments: Vec<&Expr> = args.iter().collect();
+    match name {
+        "register_generic" => {
+            let (Some(method), Some(path)) = (
+                lit_str(arguments.first().copied()),
+                get_path(arguments.get(1).copied()),
+            ) else {
+                return;
+            };
+            by_kind.entry(String::new()).or_default().push(MethodArm {
+                method,
+                path,
+                experimental: None,
+            });
+        }
+        "register_typed" => {
+            let (Some(method), Some(kind), Some(path)) = (
+                lit_str(arguments.first().copied()),
+                kind_name(arguments.get(1).copied()),
+                get_path(arguments.get(2).copied()),
+            ) else {
+                return;
+            };
+            by_kind.entry(kind).or_default().push(MethodArm {
+                method,
+                path,
+                experimental: None,
+            });
+        }
+        "register_alias" => {
+            let (Some(alias), Some(target)) = (
+                lit_str(arguments.first().copied()),
+                lit_str(arguments.get(1).copied()),
+            ) else {
+                return;
+            };
+            aliases.push((alias, target));
+        }
+        _ => {}
+    }
+}
+
+fn lit_str(expression: Option<&Expr>) -> Option<String> {
+    match expression? {
+        Expr::Lit(literal) => match &literal.lit {
+            syn::Lit::Str(value) => Some(value.value()),
+            _ => None,
+        },
+        _ => None,
+    }
+}
+
+fn kind_name(expression: Option<&Expr>) -> Option<String> {
+    let Expr::Path(path) = expression? else {
+        return None;
+    };
+    let name = path.path.segments.last()?.ident.to_string();
+    // The language server's receiver table still calls a record `RecordId`,
+    // which is the `Value` variant. The registry's kind is `Record`.
+    Some(match name.as_str() {
+        "Record" => "RecordId".to_string(),
+        other => other.to_string(),
+    })
+}
+
+fn get_path(expression: Option<&Expr>) -> Option<String> {
+    let Expr::Call(call) = expression? else {
+        return None;
+    };
+    lit_str(call.args.iter().nth(1))
 }
 
 /// `Value::String(s)` gives `String`. A bare binding is the catch-all.
@@ -303,4 +505,54 @@ fn choose_name(path: &str, names: &[String]) -> Option<String> {
         .find(|name| name.starts_with(&format!("{namespace}::")))
         .or_else(|| names.first())
         .cloned()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_registry_call_becomes_a_method_arm() {
+        let dir = std::env::temp_dir().join("xtask-method-registry");
+        std::fs::create_dir_all(&dir).unwrap();
+        let file = dir.join("method.rs");
+        std::fs::write(
+            &file,
+            r#"
+            fn build_method_registry() {
+                m.register_generic("len", get(funcs, "string::len"));
+                m.register_typed("len", ValueKind::Array, get(funcs, "array::len"));
+                m.register_alias("size", "len");
+            }
+            "#,
+        )
+        .unwrap();
+        let receivers = read_method_registry(&file).unwrap();
+        let generic = receivers
+            .iter()
+            .find(|entry| entry.kind.is_empty())
+            .unwrap();
+        assert!(
+            generic
+                .methods
+                .iter()
+                .any(|arm| arm.method == "len" && arm.path == "string::len")
+        );
+        assert!(
+            generic
+                .methods
+                .iter()
+                .any(|arm| arm.method == "size" && arm.path == "string::len")
+        );
+        let array = receivers
+            .iter()
+            .find(|entry| entry.kind == "Array")
+            .unwrap();
+        assert!(
+            array
+                .methods
+                .iter()
+                .any(|arm| arm.method == "size" && arm.path == "array::len")
+        );
+    }
 }

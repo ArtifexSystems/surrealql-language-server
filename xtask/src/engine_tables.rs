@@ -1,10 +1,10 @@
 //! The two engine tables that decide which names exist and where each one is
 //! implemented.
 //!
-//! * `syn/parser/builtin.rs` holds `PATHS`, a `phf_map!` of every name the
-//!   parser accepts. It is the authority on the spelling authors write, and its
-//!   third tuple slot carries the previous spelling for the names that were
-//!   renamed.
+//! * `expr/builtin_paths.rs` (SurrealDB 4) or `syn/parser/builtin.rs` (earlier)
+//!   holds `PATHS`, a `phf_map!` of every name the parser accepts. It is the
+//!   authority on the spelling authors write. The previous spelling, when one
+//!   was renamed, is the `Some(UniCase::ascii(...))` slot.
 //! * `fnc/mod.rs` holds the `dispatch!` tables, which map that spelling to the
 //!   implementation. A name in `PATHS` with no dispatch arm parses and then
 //!   fails at run time.
@@ -197,6 +197,15 @@ mod tests {
             "UniCase::ascii(\"math::PI\") => (PathKind::Constant(Constant::MathPi), None),",
         );
         assert!(!entries[0].is_function);
+    }
+
+    #[test]
+    fn a_v4_entry_with_a_release_slot_is_read() {
+        let entries =
+            parse_from_str("UniCase::ascii(\"api::invoke\") => (PathKind::Function, None, FIRST),");
+        assert_eq!(entries[0].name, "api::invoke");
+        assert!(entries[0].is_function);
+        assert_eq!(entries[0].previous_name, None);
     }
 
     #[test]
