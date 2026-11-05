@@ -2887,8 +2887,9 @@ fn a_valid_method_call_is_never_flagged() {
 }
 
 #[test]
-fn a_method_count_is_reported_excluding_the_receiver() {
-    // `array::at(array, int)` — one argument is written, so two is too many.
+fn a_method_count_includes_the_receiver() {
+    // `array::at(array, int)` — two arguments are written, so three including
+    // the receiver. The engine counts the receiver.
     let diagnostics = diagnostics_for("RETURN [1, 2].at(0, 1);");
     assert!(
         codes_of(&diagnostics).contains(&"argument-count".to_string()),
@@ -2898,8 +2899,8 @@ fn a_method_count_is_reported_excluding_the_receiver() {
     assert!(
         messages_of(&diagnostics)
             .iter()
-            .any(|message| message.contains("`.at()` (`array::at`) expects 1 argument, found 2")),
-        "the count is what the author writes: {:?}",
+            .any(|message| message.contains("`.at()` (`array::at`) expects 2 arguments, found 3")),
+        "the count includes the receiver: {:?}",
         messages_of(&diagnostics)
     );
 }
