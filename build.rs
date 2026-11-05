@@ -153,15 +153,10 @@ fn grammar_dir(manifest_dir: &Path) -> PathBuf {
             manifest_dir.join(configured)
         };
     }
-    // A checkout beside this crate is the language-server development layout.
-    // A library build from git has no sibling, so the pinned grammar shipped
-    // in `vendor/surrealql-tree-sitter` is the fallback.
-    let sibling = manifest_dir.join("../surrealql-tree-sitter");
-    if sibling.join("src/parser.c").is_file() {
-        sibling
-    } else {
-        manifest_dir.join("vendor/surrealql-tree-sitter")
-    }
+    // The grammar this fork ships is the vendored tree. A sibling checkout is
+    // used only when TREE_SITTER_SURREALQL_DIR names it, so CI and a git
+    // dependency compile the same parser.
+    manifest_dir.join("vendor/surrealql-tree-sitter")
 }
 
 /// Extract every SurrealQL keyword referenced by `grammar.js`. Grammar v3

@@ -295,7 +295,6 @@ jobs:
               run: cargo publish
               env:
                   CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-                  TREE_SITTER_SURREALQL_DIR: ${{ github.workspace }}/../surrealql-tree-sitter
 
     npm:
         name: Publish to npm

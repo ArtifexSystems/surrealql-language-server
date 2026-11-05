@@ -3301,6 +3301,18 @@ mod tests {
     }
 
     #[test]
+    fn define_model_parses() {
+        let analysis = analyze(
+            "DEFINE MODEL IF NOT EXISTS ml::insurance<1.0.0> COMMENT 'risk' PERMISSIONS FULL;\nREMOVE MODEL IF EXISTS ml::insurance::prediction<1.0.0>;\n",
+        );
+        assert!(
+            analysis.syntax_diagnostics.is_empty(),
+            "{:?}",
+            analysis.syntax_diagnostics
+        );
+    }
+
+    #[test]
     fn extracts_structured_function_parameter_types() {
         // A record union and an array of records.
         let analysis = analyze(

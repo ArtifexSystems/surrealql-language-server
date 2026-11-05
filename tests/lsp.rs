@@ -2515,28 +2515,16 @@ fn a_zero_argument_builtin_still_rejects_arguments() {
 }
 
 #[test]
-fn a_name_that_parses_but_cannot_be_called_is_reported() {
-    // Nine names sit in the parser's table with no implementation behind them,
-    // so the query parses and then fails at run time.
+fn a_removed_name_is_not_reported_as_not_callable() {
+    // SurrealDB 4.0.0 dropped `duration::set_day`. It is no longer a name the
+    // parser accepts and the engine refuses; the catalogue has no
+    // parse-but-not-callable entries.
     let diagnostics = diagnostics_for("RETURN duration::set_day(1d, 3);");
     let codes = codes_of(&diagnostics);
     assert!(
-        codes.contains(&"not-callable".to_string()),
+        !codes.contains(&"not-callable".to_string()),
         "got {:?}",
         messages_of(&diagnostics)
-    );
-    // A warning, not an error: the claim rests on reading the engine's dispatch
-    // tables rather than on the language definition.
-    assert!(
-        diagnostics
-            .iter()
-            .filter(|d| matches!(
-                &d.code,
-                Some(tower_lsp_server::ls_types::NumberOrString::String(code))
-                    if code == "not-callable"
-            ))
-            .all(|d| d.severity == Some(tower_lsp_server::ls_types::DiagnosticSeverity::WARNING)),
-        "not-callable must be a warning"
     );
 }
 

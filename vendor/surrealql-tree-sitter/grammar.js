@@ -964,6 +964,12 @@ export default grammar({
 						optional(seq('(', ')')),
 					),
 					seq(
+						alias($._kw_model, $.Keyword),
+						optional($.IfExistsClause),
+						$.FunctionName,
+						$.Version,
+					),
+					seq(
 						alias($._kw_param, $.Keyword),
 						optional($.IfExistsClause),
 						$.VariableName,
@@ -1022,6 +1028,7 @@ export default grammar({
 						alias($._kw_function, $.Keyword),
 						$._defineFunctionOptions,
 					),
+					seq(alias($._kw_model, $.Keyword), $._defineModelOptions),
 					seq(alias($._kw_param, $.Keyword), $._defineParamOptions),
 					$.ScopeDefinition,
 					seq(alias($._kw_table, $.Keyword), $._defineTableOptions),
@@ -1105,6 +1112,19 @@ export default grammar({
 						$.ComputedClause,
 					),
 				),
+			),
+
+		// `DEFINE MODEL [OVERWRITE | IF NOT EXISTS] ml::<name><version>
+		// [COMMENT expr] PERMISSIONS NONE | FULL | WHERE expr`. The engine
+		// always writes the permissions guard (`Permission`, not the
+		// four-clause `Permissions`).
+		_defineModelOptions: ($) =>
+			seq(
+				optional(choice($.IfNotExistsClause, $.OverwriteClause)),
+				$.FunctionName,
+				$.Version,
+				optional($.CommentClause),
+				$.PermissionsBasicClause,
 			),
 
 		_defineFunctionOptions: ($) =>
@@ -3462,6 +3482,7 @@ export default grammar({
 		_kw_m0: ($) => kw('m0'),
 		_kw_merge: ($) => kw('merge'),
 		_kw_middleware: ($) => kw('middleware'),
+		_kw_model: ($) => kw('model'),
 		_kw_mtree: ($) => kw('mtree'),
 		_kw_mtree_cache: ($) => kw('mtree_cache'),
 		_kw_namespace: ($) => kw('namespace'),
@@ -3748,6 +3769,7 @@ export default grammar({
 				$._kw_m0,
 				$._kw_merge,
 				$._kw_middleware,
+				$._kw_model,
 				$._kw_mtree,
 				$._kw_mtree_cache,
 				$._kw_namespace,

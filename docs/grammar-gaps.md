@@ -1,9 +1,9 @@
 # Grammar Gaps
 
-The language server compiles against the tree-sitter SurrealQL grammar
-pinned to commit `329dcec0a057e4bc25d71e2c97e16c391573ecb0`
-(`GRAMMAR_REF` in [`scripts/setup-grammar.sh`](../scripts/setup-grammar.sh),
-which CI and the release workflow both call).
+The language server compiles the grammar in
+`vendor/surrealql-tree-sitter`. That tree is upstream
+`329dcec0a057e4bc25d71e2c97e16c391573ecb0` plus `DEFINE MODEL` and
+`REMOVE MODEL`. CI and a git dependency both compile that vendor tree.
 The analysis layer in [`src/semantic/node_kind.rs`](../src/semantic/node_kind.rs)
 is coupled to that revision's node kinds — bump the pin and the
 constants together.
