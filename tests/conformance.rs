@@ -15,9 +15,11 @@
 //!   everywhere — including continuous integration, which has no SurrealDB
 //!   checkout.
 //! * [`the_surrealdb_corpus_produces_only_expected_diagnostics`] sweeps all
-//!   ~1,900 files of `language-tests/` and asserts the *exact* set of
-//!   diagnostics, so a new false positive fails the build rather than hiding in
-//!   a count. It skips without a checkout.
+//!   ~1,900 files of `language-tests/`. A pair is expected only when the file's
+//!   front matter declares an `error =` whose wording matches the diagnostic.
+//!   Every other pair is a false positive: it is listed in
+//!   [`KNOWN_FALSE_POSITIVES`] with its cause, or the sweep fails. It skips
+//!   without a checkout.
 //!
 //! To refresh the fixture, extract one call per distinct function from files
 //! that declare no expected error:
@@ -28,7 +30,7 @@
 //! # no `error =` / `parsing-error`, skipping clause fragments and `api::`
 //! ```
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
 use surrealql_language_server::config::ServerSettings;
@@ -181,1116 +183,369 @@ fn surql_files(dir: &Path, out: &mut Vec<PathBuf>) {
     }
 }
 
-/// Every `(file, code)` pair the sweep is allowed to report on the SurrealDB
-/// 4.0.0 language tests.
+// A `(file, code)` pair the sweep reports on code whose front matter does not
+// declare a matching `error =`. Known false positives live in
+// `known_false_positives.rs`. A fix removes the pair, and the sweep then fails
+// until the entry is deleted. A new pair fails until it is fixed or entered
+// there with its cause. A pair whose diagnostic matches a declared `error =`
+// or `match` regex is expected, and must not appear there.
+include!("known_false_positives.rs");
+
+/// `error = "…"` strings in the leading `/** … */` block.
 ///
-/// The set is what this catalogue and the pinned grammar report there. It
-/// includes calls the engine rejects, and types the pinned grammar does not
-/// know yet (`date`, `time`, `timestamp`, `interval`, `enum`). A new pair
-/// fails the sweep instead of blending into a count. A pair that disappears
-/// fails it too.
-const EXPECTED: &[(&str, &str)] = &[
-    (
-        "api/errors/caught_grouped_query_failure_leaves_no_writes.surql",
-        "operator-type",
-    ),
-    ("bench/executor/rt_import.surql", "argument-type"),
-    ("bench/executor/rt_import.surql", "operator-type"),
-    (
-        "bench/timeseries/define_id_components_scan.surql",
-        "unknown-type",
-    ),
-    ("bench/util/readings-keyed-empty.surql", "unknown-type"),
-    ("graphql/_temporal_schema.surql", "unknown-type"),
-    ("graphql/id_components_default_import.surql", "unknown-type"),
-    ("graphql/id_components_import.surql", "unknown-type"),
-    ("language/closure/basic.surql", "argument-type"),
-    (
-        "language/closure/filter_and_map_surface_forms.surql",
-        "argument-type",
-    ),
-    (
-        "language/closure/filter_and_map_surface_forms.surql",
-        "unknown-method",
-    ),
-    ("language/coerce/regex.surql", "argument-type"),
-    (
-        "language/control_flow/dependence/a_failing_write_is_reported_before_a_later_throw.surql",
-        "let-type",
-    ),
-    ("language/enums/aggregates.surql", "unknown-type"),
-    ("language/enums/fields_and_ordering.surql", "unknown-type"),
-    ("language/enums/ordering_scopes.surql", "unknown-type"),
-    ("language/enums/range_membership.surql", "unknown-type"),
-    (
-        "language/enums/rename_value_maintenance.surql",
-        "unknown-type",
-    ),
-    (
-        "language/enums/rename_value_optional_elements.surql",
-        "unknown-type",
-    ),
-    ("language/enums/rename_value_rewrites.surql", "unknown-type"),
-    ("language/enums/two_enums_compared.surql", "unknown-type"),
-    ("language/enums/typed_positions.surql", "unknown-type"),
-    (
-        "language/expression/a_false_left_gate_never_runs_its_right_operand.surql",
-        "argument-type",
-    ),
-    (
-        "language/expression/operators/operand_semantics.surql",
-        "operator-type",
-    ),
-    (
-        "language/expression/shared_subexpression_fallible.surql",
-        "operator-type",
-    ),
-    ("language/functions/array/add.surql", "argument-count"),
-    ("language/functions/array/add.surql", "argument-type"),
-    ("language/functions/array/all.surql", "argument-type"),
-    ("language/functions/array/any.surql", "argument-type"),
-    ("language/functions/array/append.surql", "argument-type"),
-    ("language/functions/array/at.surql", "argument-type"),
-    ("language/functions/array/combine.surql", "argument-type"),
-    (
-        "language/functions/array/complement.surql",
-        "argument-count",
-    ),
-    ("language/functions/array/complement.surql", "argument-type"),
-    ("language/functions/array/concat.surql", "argument-type"),
-    (
-        "language/functions/array/difference.surql",
-        "argument-count",
-    ),
-    ("language/functions/array/difference.surql", "argument-type"),
-    ("language/functions/array/distinct.surql", "argument-type"),
-    ("language/functions/array/every.surql", "argument-type"),
-    ("language/functions/array/first.surql", "argument-type"),
-    ("language/functions/array/flatten.surql", "argument-type"),
-    ("language/functions/array/group.surql", "argument-type"),
-    ("language/functions/array/includes.surql", "argument-type"),
-    ("language/functions/array/index_of.surql", "argument-count"),
-    ("language/functions/array/insert.surql", "argument-count"),
-    ("language/functions/array/intersect.surql", "argument-count"),
-    ("language/functions/array/intersect.surql", "argument-type"),
-    ("language/functions/array/is_empty.surql", "argument-type"),
-    ("language/functions/array/join.surql", "argument-count"),
-    ("language/functions/array/len.surql", "argument-type"),
-    ("language/functions/array/max.surql", "argument-type"),
-    ("language/functions/array/min.surql", "argument-type"),
-    ("language/functions/array/prepend.surql", "argument-type"),
-    ("language/functions/array/push.surql", "argument-type"),
-    ("language/functions/array/reverse.surql", "argument-type"),
-    ("language/functions/array/shuffle.surql", "argument-type"),
-    ("language/functions/array/slice.surql", "argument-type"),
-    ("language/functions/array/some.surql", "argument-type"),
-    ("language/functions/array/sort.surql", "argument-type"),
-    ("language/functions/array/sort_asc.surql", "argument-count"),
-    ("language/functions/array/sort_desc.surql", "argument-count"),
-    ("language/functions/array/union.surql", "argument-type"),
-    ("language/functions/bytes/len.surql", "argument-type"),
-    ("language/functions/math/bottom.surql", "argument-type"),
-    ("language/functions/math/top.surql", "argument-type"),
-    ("language/functions/meta/id.surql", "argument-type"),
-    ("language/functions/meta/tb.surql", "argument-type"),
-    ("language/functions/object/entries.surql", "argument-type"),
-    ("language/functions/object/extend.surql", "argument-type"),
-    (
-        "language/functions/object/extend_function.surql",
-        "argument-type",
-    ),
-    ("language/functions/parse/url/domain.surql", "argument-type"),
-    ("language/functions/parse/url/host.surql", "argument-type"),
-    ("language/functions/parse/url/path.surql", "argument-type"),
-    ("language/functions/parse/url/scheme.surql", "argument-type"),
-    ("language/functions/set/add.surql", "argument-type"),
-    ("language/functions/set/all.surql", "argument-type"),
-    ("language/functions/set/any.surql", "argument-type"),
-    ("language/functions/set/complement.surql", "argument-type"),
-    (
-        "language/functions/set/complex_values.surql",
-        "argument-type",
-    ),
-    ("language/functions/set/contains.surql", "argument-type"),
-    ("language/functions/set/difference.surql", "argument-type"),
-    ("language/functions/set/intersect.surql", "argument-type"),
-    ("language/functions/set/is_empty.surql", "argument-type"),
-    ("language/functions/set/len.surql", "argument-type"),
-    ("language/functions/set/remove.surql", "argument-type"),
-    ("language/functions/set/union.surql", "argument-type"),
-    (
-        "language/functions/signature_parity.surql",
-        "argument-count",
-    ),
-    (
-        "language/functions/string/distance/damerau_levenshtein.surql",
-        "argument-type",
-    ),
-    (
-        "language/functions/string/distance/levenshtein.surql",
-        "argument-type",
-    ),
-    ("language/functions/string/reverse.surql", "argument-type"),
-    (
-        "language/functions/string/similarity/fuzzy.surql",
-        "argument-type",
-    ),
-    (
-        "language/functions/string/similarity/smithwaterman.surql",
-        "argument-type",
-    ),
-    ("language/functions/time/set.surql", "argument-type"),
-    (
-        "language/functions/udf_argument_read_in_predicate.surql",
-        "argument-type",
-    ),
-    ("language/functions/value/chain.surql", "argument-type"),
-    (
-        "language/functions/value/expect_function_syntax.surql",
-        "argument-count",
-    ),
-    (
-        "language/functions/value/expect_function_syntax.surql",
-        "argument-type",
-    ),
-    (
-        "language/functions/value/expect_method_arity.surql",
-        "argument-count",
-    ),
-    (
-        "language/functions/value/expect_method_errors.surql",
-        "argument-type",
-    ),
-    ("language/functions/vector/add.surql", "argument-type"),
-    (
-        "language/functions/vector/distance_minkowski.surql",
-        "argument-count",
-    ),
-    (
-        "language/functions/vector/distance_minkowski.surql",
-        "argument-type",
-    ),
-    ("language/functions/vector/scale.surql", "argument-type"),
-    (
-        "language/indexes/spatial/spatial_lifecycle_and_edge_cases_differential.surql",
-        "argument-type",
-    ),
-    ("language/ir/and_or_return_operands.surql", "operator-type"),
-    ("language/ir/computed_field_reads.surql", "operator-type"),
-    (
-        "language/ir/dispatch_before_arguments.surql",
-        "argument-count",
-    ),
-    (
-        "language/ir/dispatch_before_arguments.surql",
-        "argument-type",
-    ),
-    (
-        "language/ir/dispatch_before_arguments.surql",
-        "operator-type",
-    ),
-    (
-        "language/ir/dispatch_before_arguments.surql",
-        "unknown-method",
-    ),
-    (
-        "language/ir/limit_start_and_only_errors.surql",
-        "operator-type",
-    ),
-    (
-        "language/ir/two_raising_subexpressions_report_the_first.surql",
-        "argument-count",
-    ),
-    (
-        "language/ir/two_raising_subexpressions_report_the_first.surql",
-        "operator-type",
-    ),
-    ("language/mock/outside_from.surql", "argument-type"),
-    (
-        "language/planner/explain_matrix/index_on_id_component_differential.surql",
-        "unknown-type",
-    ),
-    (
-        "language/planner/id_components_datetime_bound_without_widening.surql",
-        "unknown-type",
-    ),
-    (
-        "language/planner/id_components_datetime_subsecond.surql",
-        "unknown-type",
-    ),
-    (
-        "language/planner/id_components_differential_permissions_import.surql",
-        "unknown-type",
-    ),
-    (
-        "language/planner/id_components_differential_reads.surql",
-        "unknown-type",
-    ),
-    (
-        "language/planner/id_components_differential_reads_plan.surql",
-        "unknown-type",
-    ),
-    (
-        "language/planner/id_components_index_import.surql",
-        "unknown-type",
-    ),
-    (
-        "language/planner/id_components_int_index_mixed_number_bounds.surql",
-        "unknown-type",
-    ),
-    (
-        "language/planner/id_components_key_range_import.surql",
-        "unknown-type",
-    ),
-    (
-        "language/planner/id_components_layer_elision.surql",
-        "unknown-type",
-    ),
-    (
-        "language/planner/id_components_mutation_where.surql",
-        "unknown-type",
-    ),
-    (
-        "language/planner/id_components_order_limit.surql",
-        "unknown-type",
-    ),
-    (
-        "language/planner/id_components_permission_bounds_import.surql",
-        "unknown-type",
-    ),
-    (
-        "language/planner/id_components_raising_bound_matches_index_semantics.surql",
-        "argument-type",
-    ),
-    (
-        "language/planner/id_components_raising_bound_matches_index_semantics.surql",
-        "unknown-type",
-    ),
-    (
-        "language/planner/id_components_record_range_vs_where.surql",
-        "unknown-type",
-    ),
-    (
-        "language/planner/id_components_version.surql",
-        "unknown-type",
-    ),
-    (
-        "language/planner/id_components_version_reads_keys_as_written.surql",
-        "unknown-type",
-    ),
-    (
-        "language/primitive/array/arithmic_operations.surql",
-        "operator-type",
-    ),
-    ("language/primitive/bigdecimal/casts.surql", "unknown-type"),
-    (
-        "language/primitive/bigdecimal/define_field.surql",
-        "unknown-type",
-    ),
-    (
-        "language/primitive/duration/arithmatic_operations.surql",
-        "operator-type",
-    ),
-    (
-        "language/primitive/number_kinds/bigdecimal_indexes.surql",
-        "unknown-type",
-    ),
-    (
-        "language/primitive/number_kinds/bigdecimal_packed.surql",
-        "unknown-type",
-    ),
-    (
-        "language/primitive/number_kinds/casts.surql",
-        "unknown-type",
-    ),
-    (
-        "language/primitive/number_kinds/coercion.surql",
-        "unknown-type",
-    ),
-    (
-        "language/primitive/number_kinds/ddl_and_packed.surql",
-        "unknown-type",
-    ),
-    (
-        "language/primitive/number_kinds/literals.surql",
-        "unknown-type",
-    ),
-    (
-        "language/primitive/set/set_array_common_behaviour.surql",
-        "operator-type",
-    ),
-    (
-        "language/primitive/temporal_kinds/casts.surql",
-        "unknown-type",
-    ),
-    (
-        "language/primitive/temporal_kinds/coercion.surql",
-        "unknown-type",
-    ),
-    (
-        "language/primitive/temporal_kinds/define_field.surql",
-        "unknown-type",
-    ),
-    (
-        "language/primitive/temporal_kinds/index_scans.surql",
-        "unknown-type",
-    ),
-    (
-        "language/primitive/temporal_kinds/indexes.surql",
-        "unknown-type",
-    ),
-    (
-        "language/script/division_and_regex_after_braces.surql",
-        "unknown-method",
-    ),
-    (
-        "language/statements/alter/alter_field_id_components.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/create/id_components.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/default_value_does_not_match_type.surql",
-        "field-type",
-    ),
-    (
-        "language/statements/define/field/id_components_clash_existing_index_on_body_field.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_clash_existing_view_on_body_field.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_clash_field_then_id.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_clash_id_then_field.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_coarse_names_outlive_the_records.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_define_then_clash_same_tx.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_id_clauses_read_dropped_name.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_id_clauses_read_unresolved.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_if_not_exists_id_reads_no_record.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_kinds_refused_any.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_kinds_refused_bytes.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_kinds_refused_decimal.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_kinds_refused_float.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_kinds_refused_geometry.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_kinds_refused_literal.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_kinds_refused_nested_array.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_kinds_refused_number.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_kinds_refused_object.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_kinds_refused_option.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_kinds_refused_set.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_kinds_refused_union.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_name_not_plain_refused.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_name_read_through_function.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_relation_refused.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_remove_or_alter_component_name.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_rename_allowed_for_whole_record_values.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_rename_used_by_dynamic_name.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_rename_used_by_event.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_rename_used_by_event_input.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_rename_used_by_event_through_record_params.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_rename_used_by_field.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_rename_used_by_parent_and_destructure.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_rename_used_by_permission.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_rename_used_by_reference_repair.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_rename_used_by_view.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_rename_used_through_function.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_reserved_name_out.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_reserved_names.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_retype_allowed.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_scan_alter_unnamed_to_named.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_scan_body_conflict_refused.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_scan_conforming_kinds.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_scan_conforming_rows.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_scan_copy_recipe.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_scan_create_then_define_in_one_transaction.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_scan_decimal_in_int_refused.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_scan_empty_table.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_scan_equal_body_copy_accepted.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_scan_float_in_int_refused.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_scan_if_not_exists_skips.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_scan_names_readded_in_one_transaction.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_scan_non_whole_number_in_int_refused.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_scan_overwrite_unchanged.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_scan_scalar_key_refused.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_scan_string_in_datetime_refused.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_scan_table_unchanged_after_refusal.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_scan_wrong_arity_refused.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_scan_wrong_record_table_refused.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_scan_year_10000_refused.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_select_permission_refused.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_view_grouping_by_an_alias_reads_no_stored_field.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_view_refused.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_wildcard_view_controls.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_wildcard_view_empty_allowed.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_wildcard_view_judged_when_the_statement_runs.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_wildcard_view_naming_refused.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_wildcard_view_remedy_in_one_transaction.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_components_wildcard_view_rename_and_remove_refused.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/field/id_default.surql",
-        "field-type",
-    ),
-    (
-        "language/statements/define/field/migrate/interaction_table_step_judged_last.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/function/_small_body_functions.surql",
-        "return-type",
-    ),
-    (
-        "language/statements/define/function/custom_optional_args.surql",
-        "argument-count",
-    ),
-    (
-        "language/statements/define/function/inline_site_values.surql",
-        "argument-count",
-    ),
-    (
-        "language/statements/define/function/inline_site_values.surql",
-        "return-type",
-    ),
-    (
-        "language/statements/define/index/id_components_count_guard_bracketed_component.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/index/id_components_count_guard_through_the_record.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/index/id_components_index_defined_with_the_names.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/index/on_id_component.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/table/id_components_table_conversion_refused.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/define/table/view/temporal_kind_extremes.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/delete/id_components_retention.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/insert/id_components.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/insert/id_components_insert_relation.surql",
-        "unknown-type",
-    ),
-    ("language/statements/let/typed.surql", "let-type"),
-    (
-        "language/statements/let/typed_let_in_block.surql",
-        "let-type",
-    ),
-    (
-        "language/statements/select/group/a_failing_nested_statement_fails_a_grouped_query.surql",
-        "operator-type",
-    ),
-    (
-        "language/statements/select/group/a_value_that_ran_a_nested_statement_fails_a_grouped_query.surql",
-        "operator-type",
-    ),
-    (
-        "language/statements/select/id_components_import.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/select/id_components_info_export.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/select/id_components_permissions_import.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/select/id_range/structured_and_lightweight.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/update/id_components_immutable.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/update/id_components_merge_none.surql",
-        "unknown-type",
-    ),
-    (
-        "language/statements/upsert/id_components_upsert_by_key.surql",
-        "unknown-type",
-    ),
-    ("language/types/named/alias_ordering.surql", "unknown-type"),
-    (
-        "language/types/named/alias_shadows_union_field.surql",
-        "unknown-type",
-    ),
-    (
-        "language/types/named/alter_checks_named_types.surql",
-        "unknown-type",
-    ),
-    (
-        "language/types/named/alter_field_in_function.surql",
-        "unknown-type",
-    ),
-    (
-        "language/types/named/cast_to_unreadable_type_is_refused.surql",
-        "unknown-type",
-    ),
-    ("language/types/named/closure.surql", "argument-count"),
-    ("language/types/named/closure.surql", "unknown-type"),
-    ("language/types/named/computed_field.surql", "unknown-type"),
-    (
-        "language/types/named/define_time_checks.surql",
-        "unknown-type",
-    ),
-    (
-        "language/types/named/define_time_checks_clauses.surql",
-        "unknown-type",
-    ),
-    (
-        "language/types/named/define_time_checks_definitions.surql",
-        "unknown-type",
-    ),
-    (
-        "language/types/named/event_if_not_exists_skips_type_checks.surql",
-        "unknown-type",
-    ),
-    (
-        "language/types/named/field_if_not_exists_skips_type_checks.surql",
-        "unknown-type",
-    ),
-    (
-        "language/types/named/function_if_not_exists_skips_type_checks.surql",
-        "unknown-type",
-    ),
-    (
-        "language/types/named/nested_reads_are_not_the_union_field.surql",
-        "unknown-type",
-    ),
-    (
-        "language/types/named/object_absent_field.surql",
-        "unknown-type",
-    ),
-    (
-        "language/types/named/omitted_named_argument_import.surql",
-        "unknown-type",
-    ),
-    ("language/types/named/ordering.surql", "unknown-type"),
-    (
-        "language/types/named/overwrite_in_use.surql",
-        "unknown-type",
-    ),
-    (
-        "language/types/named/overwrite_judges_by_coercion.surql",
-        "unknown-type",
-    ),
-    (
-        "language/types/named/overwrite_judges_record_key.surql",
-        "unknown-type",
-    ),
-    (
-        "language/types/named/overwrite_renders_found_value.surql",
-        "unknown-type",
-    ),
-    (
-        "language/types/named/overwrite_validates_nested_values.surql",
-        "unknown-type",
-    ),
-    (
-        "language/types/named/overwrite_validates_wildcard_fields.surql",
-        "unknown-type",
-    ),
-    ("language/types/named/record_id.surql", "unknown-type"),
-    (
-        "language/types/named/referenced_by_access_methods.surql",
-        "unknown-type",
-    ),
-    (
-        "language/types/named/referenced_by_events_and_permissions.surql",
-        "unknown-type",
-    ),
-    (
-        "language/types/named/referenced_by_expressions.surql",
-        "unknown-type",
-    ),
-    (
-        "language/types/named/referenced_by_params_and_apis.surql",
-        "unknown-type",
-    ),
-    (
-        "language/types/named/referenced_by_references_indexes_buckets_configs.surql",
-        "unknown-type",
-    ),
-    (
-        "language/types/named/referenced_by_views.surql",
-        "unknown-type",
-    ),
-    (
-        "language/types/named/rename_held_in_id_subpath.surql",
-        "unknown-type",
-    ),
-    (
-        "language/types/named/rename_held_in_record_id.surql",
-        "unknown-type",
-    ),
-    (
-        "language/types/named/rename_through_alias.surql",
-        "unknown-type",
-    ),
-    ("language/types/named/session_let.surql", "unknown-type"),
-    (
-        "language/types/named/set_length_and_union_refusal.surql",
-        "unknown-type",
-    ),
-    ("language/types/named/temporal_union.surql", "unknown-type"),
-    ("language/types/named/tuple.surql", "unknown-type"),
-    (
-        "language/types/named/type_default_on_create.surql",
-        "unknown-type",
-    ),
-    (
-        "language/types/named/union_member_order.surql",
-        "unknown-type",
-    ),
-    (
-        "language/types/named/view_extreme_of_union.surql",
-        "unknown-type",
-    ),
-    ("language/types/named/write_path.surql", "unknown-type"),
-    (
-        "language/types/named/write_where_order.surql",
-        "unknown-type",
-    ),
-    (
-        "language/write/id_components_catalog_change_between_writes.surql",
-        "unknown-type",
-    ),
-    (
-        "language/write/id_components_changefeed.surql",
-        "unknown-type",
-    ),
-    (
-        "language/write/id_components_defined_in_the_block.surql",
-        "unknown-type",
-    ),
-    (
-        "language/write/id_components_equal_body_copy_cut_on_write.surql",
-        "unknown-type",
-    ),
-    (
-        "language/write/id_components_error_precedence.surql",
-        "unknown-type",
-    ),
-    (
-        "language/write/id_components_foreign_view.surql",
-        "unknown-type",
-    ),
-    (
-        "language/write/id_components_guard_derivations_import.surql",
-        "unknown-type",
-    ),
-    ("language/write/id_components_import.surql", "unknown-type"),
-    (
-        "language/write/id_components_insert_ignore.surql",
-        "unknown-type",
-    ),
-    (
-        "language/write/id_components_keyword_names.surql",
-        "unknown-type",
-    ),
-    (
-        "language/write/id_components_mutation_snapshot.surql",
-        "unknown-type",
-    ),
-    (
-        "language/write/id_components_return_forms.surql",
-        "unknown-type",
-    ),
-    (
-        "language/write/id_components_schemafull.surql",
-        "unknown-type",
-    ),
-    (
-        "language/write/observers_see_id_components.surql",
-        "unknown-type",
-    ),
-    ("mysql/_shirts_schema.surql", "unknown-type"),
-    ("mysql/_temporal_columns.surql", "unknown-type"),
-    (
-        "parsing/errors/id_components_duplicate_escaped_name.surql",
-        "unknown-type",
-    ),
-    (
-        "parsing/errors/id_components_duplicate_name.surql",
-        "unknown-type",
-    ),
-    ("parsing/errors/id_components_in_cast.surql", "unknown-type"),
-    (
-        "parsing/errors/id_components_missing_comma.surql",
-        "unknown-type",
-    ),
-    (
-        "parsing/errors/id_components_mixed_named_and_unnamed.surql",
-        "unknown-type",
-    ),
-    (
-        "parsing/errors/id_components_nested_tuple.surql",
-        "unknown-type",
-    ),
-    (
-        "parsing/errors/id_components_not_the_whole_type.surql",
-        "unknown-type",
-    ),
-    (
-        "parsing/errors/id_components_on_idiom_name.surql",
-        "unknown-type",
-    ),
-    (
-        "parsing/errors/id_components_other_field_keeps_the_kind_error.surql",
-        "unknown-type",
-    ),
-    (
-        "parsing/errors/id_components_reserved_name.surql",
-        "unknown-type",
-    ),
-    (
-        "parsing/errors/id_components_unnamed_then_named.surql",
-        "unknown-type",
-    ),
-    ("pgsql/_domain_column.surql", "unknown-type"),
-    ("pgsql/_enum_schema.surql", "unknown-type"),
-    ("pgsql/_interval_qualifiers.surql", "unknown-type"),
-    ("pgsql/_json_not_null_domain.surql", "unknown-type"),
-    ("pgsql/_temporal_columns.surql", "unknown-type"),
-    ("pgsql/_temporal_infinity.surql", "unknown-type"),
-    ("pgsql/sql_types/_text_columns.surql", "unknown-type"),
-    (
-        "reproductions/6616_fields_through_a_computed_reference.surql",
-        "argument-type",
-    ),
-    (
-        "reproductions/6697_literal_kind_union_and_cast_members.surql",
-        "let-type",
-    ),
-    (
-        "reproductions/7377_view_index_matches_a_table_scan.surql",
-        "unknown-method",
-    ),
-    (
-        "reproductions/7532_compound_index_range_matches_a_table_scan.surql",
-        "unknown-method",
-    ),
-    (
-        "reproductions/7593_write_with_in_matches_a_table_scan.surql",
-        "unknown-method",
-    ),
-    (
-        "reproductions/a_call_after_a_data_dependent_schema_statement_calls_the_definition_it_meets.surql",
-        "argument-count",
-    ),
-    (
-        "reproductions/a_call_after_a_data_dependent_schema_statement_calls_the_definition_it_meets.surql",
-        "argument-type",
-    ),
-    (
-        "reproductions/a_default_that_does_not_coerce_is_refused_and_not_stored.surql",
-        "field-type",
-    ),
-    (
-        "reproductions/a_method_argument_error_is_named_as_main_names_it.surql",
-        "argument-count",
-    ),
-    (
-        "reproductions/a_method_argument_error_is_named_as_main_names_it.surql",
-        "argument-type",
-    ),
-    (
-        "reproductions/a_nested_broadcast_maps_in_turn.surql",
-        "unknown-method",
-    ),
-    (
-        "reproductions/a_scan_keeps_its_sort_when_a_coarse_record_id_keeps_its_names.surql",
-        "unknown-type",
-    ),
-    (
-        "reproductions/a_schema_clause_without_a_logical_form.surql",
-        "argument-type",
-    ),
-    (
-        "reproductions/a_versioned_scan_delivers_id_order_only_where_the_stamp_says_so.surql",
-        "unknown-type",
-    ),
-    (
-        "reproductions/a_versioned_scan_keeps_its_sort_when_the_id_names_are_gone_import.surql",
-        "unknown-type",
-    ),
-    (
-        "reproductions/an_error_names_what_failed_as_main_names_it.surql",
-        "field-type",
-    ),
-    (
-        "reproductions/an_undeclared_array_id_is_not_in_id_order.surql",
-        "unknown-type",
-    ),
-    (
-        "reproductions/fold_function_capability_gate.surql",
-        "argument-type",
-    ),
-    (
-        "reproductions/value_clause_type_validation.surql",
-        "field-type",
-    ),
-    ("self_tests/multi_line.surql", "operator-type"),
-    (
-        "upgrade/define/3.00.00_field_temporal_retype_date.surql",
-        "unknown-type",
-    ),
-    (
-        "upgrade/define/3.00.00_field_temporal_retype_interval.surql",
-        "unknown-type",
-    ),
-    (
-        "upgrade/define/3.00.00_field_temporal_retype_timestamp.surql",
-        "unknown-type",
-    ),
-    (
-        "upgrade/define/3.00.00_id_components_float_in_int_position.surql",
-        "unknown-type",
-    ),
-    (
-        "upgrade/define/3.00.00_id_components_nonconforming_old_rows.surql",
-        "unknown-type",
-    ),
-    (
-        "upgrade/define/3.00.00_id_components_onto_array_ids.surql",
-        "unknown-type",
-    ),
-    (
-        "upgrade/define/3.00.00_id_components_onto_array_ids_current.surql",
-        "unknown-type",
-    ),
-    (
-        "upgrade/define/3.00.00_id_components_under_wildcard_view.surql",
-        "unknown-type",
-    ),
-    (
-        "upgrade/define/3.00.00_index_datetime_retype_timestamp.surql",
-        "unknown-type",
-    ),
-    (
-        "upgrade/define/3.00.00_index_datetime_retype_timestamp_current.surql",
-        "unknown-type",
-    ),
-];
+/// `error = true` and `error = false` declare that a call fails or succeeds
+/// without saying the words, so they do not make a diagnostic expected. A
+/// `match = "$error = /…/"` on the same result is the wording, and it counts.
+/// `parsing-error` is a different key and is left alone.
+fn declared_errors(source: &str) -> Vec<String> {
+    let head = match source.split_once("*/") {
+        Some((head, _)) if head.trim_start().starts_with("/**") => head,
+        _ => return Vec::new(),
+    };
+    let lines: Vec<&str> = head.lines().collect();
+    let mut errors = Vec::new();
+    let mut index = 0;
+    while index < lines.len() {
+        if let Some(value) = assignment(lines[index], "match") {
+            if let Some(text) = match_pattern(value) {
+                errors.push(text);
+            }
+            index += 1;
+            continue;
+        }
+        let Some(value) = assignment(lines[index], "error") else {
+            index += 1;
+            continue;
+        };
+        if value == "true" || value == "false" {
+            index += 1;
+            continue;
+        }
+        // `"""` is three quotes. A basic string would stop at the second.
+        if let Some(rest) = value.strip_prefix("\"\"\"") {
+            let (text, next) = multiline_string(&lines, index, rest);
+            if !text.is_empty() {
+                errors.push(text);
+            }
+            index = next;
+            continue;
+        }
+        if let Some(text) = basic_string(value) {
+            if !text.is_empty() {
+                errors.push(text);
+            }
+            index += 1;
+            continue;
+        }
+        index += 1;
+    }
+    errors
+}
+
+/// The value after `key =` on this line, when the key is exactly `key`.
+fn assignment<'a>(line: &'a str, key: &str) -> Option<&'a str> {
+    let trimmed = line.trim();
+    if trimmed.starts_with('#') {
+        return None;
+    }
+    let rest = trimmed.strip_prefix(key)?.trim_start();
+    let rest = rest.strip_prefix('=')?.trim();
+    if rest.is_empty() { None } else { Some(rest) }
+}
+
+/// The pattern inside `match = "$error = /…/"`.
+fn match_pattern(value: &str) -> Option<String> {
+    let text = basic_string(value)?;
+    let rest = text.split_once("$error = /")?.1;
+    let mut pattern = String::new();
+    let mut chars = rest.chars();
+    while let Some(ch) = chars.next() {
+        if ch == '\\' {
+            if let Some(next) = chars.next() {
+                pattern.push(next);
+            }
+            continue;
+        }
+        if ch == '/' {
+            break;
+        }
+        pattern.push(ch);
+    }
+    if pattern.is_empty() {
+        None
+    } else {
+        Some(pattern)
+    }
+}
+
+fn basic_string(value: &str) -> Option<String> {
+    let mut chars = value.chars();
+    if chars.next() != Some('"') {
+        return None;
+    }
+    let mut text = String::new();
+    while let Some(ch) = chars.next() {
+        if ch == '\\' {
+            match chars.next() {
+                Some('n') => text.push('\n'),
+                Some('t') => text.push('\t'),
+                Some('r') => text.push('\r'),
+                Some(other) => text.push(other),
+                None => break,
+            }
+            continue;
+        }
+        if ch == '"' {
+            return Some(text);
+        }
+        text.push(ch);
+    }
+    None
+}
+
+fn multiline_string(lines: &[&str], index: usize, first: &str) -> (String, usize) {
+    if let Some(end) = first.find("\"\"\"") {
+        return (first[..end].to_string(), index + 1);
+    }
+    let mut text = String::from(first);
+    let mut cursor = index + 1;
+    while cursor < lines.len() {
+        if let Some(end) = lines[cursor].find("\"\"\"") {
+            if !text.is_empty() {
+                text.push('\n');
+            }
+            text.push_str(&lines[cursor][..end]);
+            return (text, cursor + 1);
+        }
+        if !text.is_empty() {
+            text.push('\n');
+        }
+        text.push_str(lines[cursor]);
+        cursor += 1;
+    }
+    (text, cursor)
+}
+
+fn normalize_wording(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut space = false;
+    for ch in text.chars() {
+        if ch.is_ascii_alphanumeric() || ch == '$' || ch == ':' || ch == '_' {
+            out.push(ch.to_ascii_lowercase());
+            space = false;
+        } else if !space && !out.is_empty() {
+            out.push(' ');
+            space = true;
+        }
+    }
+    if out.ends_with(' ') {
+        out.pop();
+    }
+    out
+}
+
+fn has_token(text: &str, token: &str) -> bool {
+    !token.is_empty() && text.split(' ').any(|word| word == token)
+}
+
+/// `phrase` as a whole run of words. `expected int` does not match
+/// `expected interval`, and `2 arguments` does not match `12 arguments`.
+fn has_phrase(text: &str, phrase: &str) -> bool {
+    if phrase.is_empty() {
+        return false;
+    }
+    let padded = format!(" {text} ");
+    padded.contains(&format!(" {phrase} "))
+}
+
+fn backticked(message: &str) -> Vec<&str> {
+    let mut out = Vec::new();
+    let mut rest = message;
+    while let Some(start) = rest.find('`') {
+        rest = &rest[start + 1..];
+        let Some(end) = rest.find('`') else {
+            break;
+        };
+        out.push(&rest[..end]);
+        rest = &rest[end + 1..];
+    }
+    out
+}
+
+/// True when `message` is the checker's paraphrase of `declared`.
+///
+/// The checker does not copy the engine's sentence. An argument-count
+/// diagnostic says `` `array::add` expects 2 arguments, found 1. `` where the
+/// file says `Incorrect arguments for function array::add(). Expected 2
+/// arguments`. The match is the function and the expected arity or type, or
+/// the same "cannot perform" sentence once quotes are ignored. A declaration
+/// about a different failure does not match.
+fn wording_matches(message: &str, declared: &str) -> bool {
+    let message_n = normalize_wording(message);
+    let declared_n = normalize_wording(declared);
+    if message_n.is_empty() || declared_n.is_empty() {
+        return false;
+    }
+    // A short declaration must not match by being a fragment of the
+    // diagnostic. The sentences that are the same words are long.
+    if message_n == declared_n
+        || (declared_n.len() > 24
+            && (declared_n.contains(&message_n) || message_n.contains(&declared_n)))
+    {
+        return true;
+    }
+    count_wording(message, &declared_n)
+        || argument_type_wording(message, &declared_n)
+        || declared_type_wording(message, &declared_n)
+        || operator_wording(message, &declared_n)
+        || unknown_method_wording(message, &declared_n)
+        || unknown_wording(message, &declared_n)
+}
+
+fn unknown_method_wording(message: &str, declared: &str) -> bool {
+    let Some(rest) = message.strip_prefix('`') else {
+        return false;
+    };
+    let Some((_, rest)) = rest.split_once("` has no method `") else {
+        return false;
+    };
+    let Some((method, _)) = rest.split_once('`') else {
+        return false;
+    };
+    let method = normalize_wording(method);
+    has_token(declared, &method)
+        && (declared.contains("no such method") || declared.contains("not found"))
+}
+
+/// `array<int>` and `array` are the same refusal. The checker keeps the element
+/// type; the engine's `error =` names the family.
+fn operator_wording(message: &str, declared: &str) -> bool {
+    let phrase = if let Some(rest) = message.strip_prefix("Cannot perform ") {
+        let Some((verb, rest)) = rest.split_once(" with `") else {
+            return false;
+        };
+        let Some((left, rest)) = rest.split_once("` and `") else {
+            return false;
+        };
+        let Some((right, _)) = rest.split_once('`') else {
+            return false;
+        };
+        format!(
+            "cannot perform {} with {} and {}",
+            normalize_wording(verb),
+            base_type(left),
+            base_type(right)
+        )
+    } else if let Some(rest) = message.strip_prefix("Cannot raise the value `") {
+        let Some((left, rest)) = rest.split_once("` with `") else {
+            return false;
+        };
+        let Some((right, _)) = rest.split_once('`') else {
+            return false;
+        };
+        format!(
+            "cannot raise the value {} with {}",
+            base_type(left),
+            base_type(right)
+        )
+    } else {
+        return false;
+    };
+    has_phrase(declared, &phrase)
+}
+
+fn base_type(ty: &str) -> String {
+    normalize_wording(ty.split('<').next().unwrap_or(ty))
+}
+
+fn count_wording(message: &str, declared: &str) -> bool {
+    let Some(rest) = message.split_once(" expects ") else {
+        return false;
+    };
+    let Some((expected, _)) = rest.1.split_once(", found ") else {
+        return false;
+    };
+    let expected = normalize_wording(expected.trim_end_matches('.'));
+    if !has_phrase(declared, &expected) {
+        return false;
+    }
+    backticked(rest.0)
+        .into_iter()
+        .chain(backticked(rest.1))
+        .map(normalize_wording)
+        .any(|name| name.len() >= 3 && has_token(declared, &name))
+}
+
+fn argument_type_wording(message: &str, declared: &str) -> bool {
+    // `Argument 2 of `.extend()` (`object::extend`) expects `object`, found …`
+    // The closing backtick of the name is not always the last one before
+    // "expects": a method names both the method and the function.
+    let Some((head, rest)) = message.split_once(" expects `") else {
+        return false;
+    };
+    let Some((expected, _)) = rest.split_once('`') else {
+        return false;
+    };
+    let expected = normalize_wording(expected);
+    if !has_phrase(declared, &format!("expected {expected}")) {
+        return false;
+    }
+    backticked(head)
+        .into_iter()
+        .map(normalize_wording)
+        .any(|name| {
+            let bare = name.trim_matches('.').to_string();
+            bare.len() >= 3 && (has_token(declared, &name) || has_token(declared, &bare))
+        })
+}
+
+fn declared_type_wording(message: &str, declared: &str) -> bool {
+    let Some(rest) = message.strip_prefix('`') else {
+        return false;
+    };
+    let Some((name, rest)) = rest.split_once("` is declared `") else {
+        return false;
+    };
+    let Some((ty, _)) = rest.split_once('`') else {
+        return false;
+    };
+    let ty = normalize_wording(ty);
+    if !has_phrase(declared, &format!("expected {ty}")) {
+        return false;
+    }
+    let name = normalize_wording(name);
+    name == "this field" || !name.starts_with('$') || has_token(declared, &name)
+}
+
+fn unknown_wording(message: &str, declared: &str) -> bool {
+    let Some(name) = message.strip_prefix("Unknown type `") else {
+        return false;
+    };
+    let Some((name, _)) = name.split_once('`') else {
+        return false;
+    };
+    let name = normalize_wording(name);
+    has_token(declared, &name)
+        && (declared.contains("unknown")
+            || declared.contains("unexpected")
+            || declared.contains("kind name")
+            || declared.contains("not a type"))
+}
+
+fn messages_match_declaration(messages: &[String], declared: &[String]) -> bool {
+    !messages.is_empty()
+        && messages
+            .iter()
+            .all(|message| declared.iter().any(|error| wording_matches(message, error)))
+}
+
+fn shorten(text: &str) -> String {
+    let flat = text.split_whitespace().collect::<Vec<_>>().join(" ");
+    if flat.chars().count() <= 160 {
+        return flat;
+    }
+    flat.chars().take(160).collect::<String>() + "…"
+}
 
 /// The exhaustive oracle. Ignored by default because it re-analyses ~1,900
 /// documents and takes about two minutes, which does not belong in a suite that
@@ -1318,8 +573,9 @@ fn the_surrealdb_corpus_produces_only_expected_diagnostics() {
         files.len()
     );
 
-    let mut found: BTreeSet<(String, String)> = BTreeSet::new();
-    let mut detail: Vec<String> = Vec::new();
+    let mut expected: BTreeSet<(String, String)> = BTreeSet::new();
+    let mut false_positives: BTreeMap<(String, String), Vec<String>> = BTreeMap::new();
+    let mut declarations: BTreeMap<String, Vec<String>> = BTreeMap::new();
     for file in &files {
         let Ok(source) = std::fs::read_to_string(file) else {
             continue;
@@ -1333,37 +589,180 @@ fn the_surrealdb_corpus_produces_only_expected_diagnostics() {
             .strip_prefix(&corpus)
             .unwrap_or(file)
             .to_string_lossy()
+            .trim_start_matches('/')
             .to_string();
+        let declared = declared_errors(&source);
+        let mut by_code: BTreeMap<String, Vec<String>> = BTreeMap::new();
         for (code, message) in argument_diagnostics(body) {
-            found.insert((relative.clone(), code.clone()));
-            detail.push(format!("{relative} :: {code} :: {message}"));
+            by_code.entry(code).or_default().push(message);
+        }
+        if by_code.is_empty() {
+            continue;
+        }
+        declarations.insert(relative.clone(), declared.clone());
+        for (code, messages) in by_code {
+            if messages_match_declaration(&messages, &declared) {
+                expected.insert((relative.clone(), code));
+            } else {
+                false_positives.insert((relative.clone(), code), messages);
+            }
         }
     }
 
-    let expected: BTreeSet<(String, String)> = EXPECTED
+    let known: BTreeMap<(String, String), &str> = KNOWN_FALSE_POSITIVES
         .iter()
-        .map(|(file, code)| ((*file).to_string(), (*code).to_string()))
+        .map(|(file, code, cause)| ((file.to_string(), code.to_string()), *cause))
         .collect();
+    assert_eq!(
+        known.len(),
+        KNOWN_FALSE_POSITIVES.len(),
+        "a false positive is listed twice"
+    );
 
-    let unexpected: Vec<&(String, String)> = found.difference(&expected).collect();
-    assert!(
-        unexpected.is_empty(),
-        "the checks fired on {} file(s) not in the expected set:\n{}",
-        unexpected.len(),
-        detail
-            .iter()
-            .filter(|line| unexpected
+    let mut extra = Vec::new();
+    for ((file, code), messages) in &false_positives {
+        if known.contains_key(&(file.clone(), code.clone())) {
+            continue;
+        }
+        let declared = declarations.get(file).map(Vec::as_slice).unwrap_or(&[]);
+        let declared = if declared.is_empty() {
+            "(no error = wording)".to_string()
+        } else {
+            declared
                 .iter()
-                .any(|(file, code)| line.starts_with(&format!("{file} :: {code}"))))
-            .cloned()
-            .collect::<Vec<_>>()
-            .join("\n")
-    );
+                .map(|error| shorten(error))
+                .collect::<Vec<_>>()
+                .join(" | ")
+        };
+        for message in messages {
+            extra.push(format!(
+                "{file} :: {code} :: {}\n  declared: {declared}",
+                shorten(message)
+            ));
+        }
+    }
+    let mut stale = Vec::new();
+    for (pair, cause) in &known {
+        if false_positives.contains_key(pair) {
+            continue;
+        }
+        let why = if expected.contains(pair) {
+            "it now matches a declared error"
+        } else {
+            "the sweep no longer reports it"
+        };
+        stale.push(format!("{} :: {} — {why}. {cause}", pair.0, pair.1));
+    }
 
-    // The other direction: a check that silently stops working should also fail.
-    let missing: Vec<&(String, String)> = expected.difference(&found).collect();
-    assert!(
-        missing.is_empty(),
-        "these known-bad calls are no longer reported: {missing:?}"
+    if !extra.is_empty() || !stale.is_empty() {
+        let report = format!(
+            "expected {} (wording matched a declared error)\n\
+             known false positives {}\n\
+             unlisted false positives {}:\n{}\n\
+             stale known entries {}:\n{}",
+            expected.len(),
+            known.len(),
+            extra.len(),
+            extra.join("\n"),
+            stale.len(),
+            stale.join("\n")
+        );
+        let _ = std::fs::write("/tmp/conformance-sweep.txt", &report);
+        panic!("{report}");
+    }
+
+    eprintln!(
+        "expected {} pair(s); known false positives {}:",
+        expected.len(),
+        known.len()
     );
+    for ((file, code), cause) in &known {
+        eprintln!("  {file} :: {code} — {cause}");
+    }
+}
+
+#[test]
+fn an_error_declaration_matches_the_checkers_paraphrase() {
+    let count = "`array::add` expects 2 arguments, found 1.";
+    let declared_count = "Incorrect arguments for function array::add(). Expected 2 arguments";
+    assert!(wording_matches(count, declared_count));
+
+    let typed = "Argument 1 of `array::add` expects `array`, found `int`.";
+    let declared_typed = "Incorrect arguments for function array::add(). Argument 1 was the \
+         wrong type. Expected `array` but found `3`";
+    assert!(wording_matches(typed, declared_typed));
+
+    let letter = "`$bar` is declared `int` but the value is `string`.";
+    let declared_letter =
+        "Tried to set `$bar`, but couldn't coerce value: Expected `int` but found `'hello'`";
+    assert!(wording_matches(letter, declared_letter));
+
+    let operator = "Cannot perform addition with `string` and `int`.";
+    assert!(wording_matches(
+        operator,
+        "Cannot perform addition with 'string' and 'int'"
+    ));
+    assert!(wording_matches(
+        "Cannot perform addition with `array<int>` and `int`.",
+        "Cannot perform addition with 'array' and 'int'"
+    ));
+    assert!(wording_matches(
+        "Cannot raise the value `array<int>` with `int`.",
+        "Cannot raise the value 'array' with 'int'"
+    ));
+    let source =
+        "/**\nmatch = \"$error = /Expected `object` but found `'9'`/\"\nerror = true\n*/\n";
+    assert_eq!(
+        declared_errors(source),
+        vec!["Expected `object` but found `'9'`".to_string()]
+    );
+}
+
+#[test]
+fn explain_is_text_so_contains_is_the_string_method() {
+    let source = "(EXPLAIN SELECT VALUE id FROM child ORDER BY t).contains('Index');";
+    let hits: Vec<_> = argument_diagnostics(source)
+        .into_iter()
+        .filter(|(code, _)| code == "unknown-method")
+        .collect();
+    assert!(hits.is_empty(), "{hits:?}");
+}
+
+#[test]
+fn a_declaration_about_something_else_is_not_a_match() {
+    let operator = "Cannot perform addition with `int` and `string`.";
+    assert!(!wording_matches(operator, "The table 't' does not exist"));
+    assert!(!wording_matches(
+        "Unknown type `date`.",
+        "The table 't' does not exist"
+    ));
+    assert!(wording_matches(
+        "`string` has no method `filter`.",
+        "There was a problem running the filter() function. no such method found for the string type"
+    ));
+    let other_let = "`$foo` is declared `int` but the value is `string`.";
+    assert!(!wording_matches(
+        other_let,
+        "Tried to set `$bar`, but couldn't coerce value: Expected `int` but found `'hello'`"
+    ));
+}
+
+#[test]
+fn error_true_declares_no_wording() {
+    let source = "/**\n[[test.results]]\nerror = true\n*/\n1 + \"1\";\n";
+    assert!(declared_errors(source).is_empty());
+    let source = "/**\n[[test.results]]\nerror = false\n*/\nRETURN 1;\n";
+    assert!(declared_errors(source).is_empty());
+}
+
+#[test]
+fn a_multiline_error_keeps_its_wording() {
+    let source =
+        "/**\nerror = \"\"\"\nCannot perform addition with 'int' and 'string'\n\"\"\"\n*/\n";
+    let errors = declared_errors(source);
+    assert_eq!(errors.len(), 1);
+    assert!(wording_matches(
+        "Cannot perform addition with `int` and `string`.",
+        &errors[0]
+    ));
 }

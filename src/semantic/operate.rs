@@ -5,14 +5,15 @@
 //! The documentation does not answer this. It never states a rule for
 //! `string + int`, and it never states a rule for numeric promotion in
 //! arithmetic — its operators page shows same-type examples only. So every
-//! table here is read from the engine at revision `9d9a5b069`, the revision
-//! [`crate::grammar_generated::SURREALDB_REVISION`] already pins, and each one
-//! cites the file and lines it came from.
+//! table here is read from the engine at revision `284fe93af` (SurrealDB
+//! 4.0.0), the revision [`crate::grammar_generated::SURREALDB_REVISION`] pins,
+//! and each one cites the file and lines it came from.
 //!
 //! The tables are also irregular enough that no shared rule would capture them:
 //! `+` concatenates two strings but rejects a string and an int; `*` accepts
-//! `duration * int` but *not* `int * duration`; `/` never fails at all. Read the
-//! engine, not your intuition.
+//! `duration * int` but *not* `int * duration`; division of anything but an
+//! interval becomes `NaN` instead of failing. Read the engine, not your
+//! intuition.
 //!
 //! # The silence rule
 //!
@@ -111,18 +112,22 @@ impl ArithOp {
 
     /// True when a failure of this operator is worth reporting.
     ///
-    /// Division is the exception. `fnc::operate::div` is
-    /// `Ok(a.try_div(b).unwrap_or(f64::NAN.into()))` (`fnc/operate.rs:31-33`),
-    /// so `[1,2,3] / 1` evaluates to `NaN` rather than failing. There is no
-    /// error to surface.
+    /// Division of a non-interval is the exception. `runtime::operate::div`
+    /// returns an interval's own error, and otherwise
+    /// `Ok(a.try_div(b).unwrap_or(f64::NAN.into()))`
+    /// (`runtime/src/operate.rs:30-36`), so `[1,2,3] / 1` evaluates to `NaN`.
+    /// Interval is not a kind [`value_kind`] answers, so for every pair this
+    /// module judges there is no error to surface.
     pub fn can_fail(self) -> bool {
         !matches!(self, Self::Div)
     }
 
     /// The engine's own wording for a failure of this operator.
     ///
-    /// `Error::TryAdd` and friends live at `err/mod.rs:647-673`. Note that
-    /// `**` has its own sentence rather than a "perform" phrase.
+    /// `Error::TryAdd` and friends live at `expr/src/expr/error.rs:104-125`.
+    /// The engine's `Display` uses single quotes. The diagnostic uses
+    /// backticks so a type name stays one token. `**` has its own sentence
+    /// (`TryPow`, line 123) rather than a "perform" phrase.
     pub fn failure_message(self, lhs: &TypeExpr, rhs: &TypeExpr) -> String {
         let verb = match self {
             Self::Add => "addition",
@@ -140,16 +145,20 @@ impl ArithOp {
 /// The kind `op` produces from these operands, or `None` when the engine fails.
 ///
 /// Transcribed from the `TryAdd`/`TrySub`/`TryMul`/`TryDiv`/`TryPow` impls for
-/// `Value`:
+/// `Value` at `expr/src/val/mod.rs`, re-read at `284fe93af`:
 ///
-/// * addition — `val/mod.rs:648-677`, ten arms
-/// * subtraction — `val/mod.rs:686-712`, nine arms
-/// * multiplication — `val/mod.rs:721-773`, four arms
-/// * division — `val/mod.rs:782-830`, four arms
-/// * power — `val/mod.rs:873-881`, one arm
+/// * addition — `try_add` at line 1210
+/// * subtraction — `try_sub` at line 1258
+/// * multiplication — `try_mul` at line 1302
+/// * division — `try_div` at line 1375
+/// * power — `try_pow` at line 1479, numbers only
 ///
-/// Anything absent from those impls reaches the engine's catch-all `bail!`, so
-/// `None` here means "the query fails at run time".
+/// A pair those impls do not name falls through to `temporal_ops`
+/// (`expr/src/val/temporal_ops.rs:208` add, `:249` sub, `:302` mul, `:312` div)
+/// and then to `Error::Try*`. `None` here means the query fails at run time for
+/// a kind this module answers. `date`, `time`, `timestamp` and `interval` are
+/// answered only there, and [`value_kind`] leaves them unknown, so this
+/// function is not asked about them.
 pub fn arith_result(op: ArithOp, lhs: ValueKind, rhs: ValueKind) -> Option<ValueKind> {
     use ArithOp::{Add, Div, Mul, Pow, Sub};
     use ValueKind::{Array, Datetime, Duration, Object, Set, String};
@@ -194,10 +203,14 @@ pub fn arith_result(op: ArithOp, lhs: ValueKind, rhs: ValueKind) -> Option<Value
 
 /// The kind the engine promotes a numeric pair to.
 ///
-/// Transcribed from the `impl_simple_try_op!` macro at
-/// `val/number.rs:925-955`, whose catch-all arm converts both sides to a
-/// decimal. `Number` is not a runtime variant, so a pair involving it can only
-/// be answered coarsely.
+/// `impl_simple_try_op!` (`expr/src/val/number.rs:2198`, invoked at 2246-2250)
+/// joins the two kinds with `NumberKind::join` (`expr/src/val/number.rs:116`,
+/// the table at `types/src/value/number.rs:159`). Among the four kinds this
+/// module names, that table has the same shape as the earlier one: `int` with
+/// `int` stays `int`, a `float` with anything but `decimal` is `float`, and
+/// every other pair is `decimal`. `bigdecimal` absorbs even a float, and this
+/// module does not answer `bigdecimal`. `Number` is not a runtime variant, so
+/// a pair involving it can only be answered coarsely.
 fn number_result(lhs: ValueKind, rhs: ValueKind) -> ValueKind {
     use ValueKind::{Decimal, Float, Int, Number};
     match (lhs, rhs) {
@@ -279,16 +292,24 @@ fn scalar_kind(name: &str) -> Option<ValueKind> {
         | "function" | "record" | "table" | "none" | "null" => ValueKind::Other,
 
         // `any`, `value`, and every name this mapper has not been taught.
+        // SurrealDB 4 adds `date`, `time`, `timestamp`, `interval`, `enum` and
+        // the sized numbers. `temporal_ops` accepts many of those pairs, and a
+        // half-written arm would report one the engine runs. Silence until the
+        // arm is complete.
         _ => return None,
     })
 }
 
 /// The precedence rank of a binary operator, as the engine ranks it.
 ///
-/// The engine's `BindingPower` (`sql/operator.rs:535-549`) runs
+/// The engine's `BINARY_BP` (`parser-next/src/parse/expr.rs:10-16`, table at
+/// 27-74) runs
 /// `Nullish < Or < And < Equality < Relation < AddSub < MulDiv < Power`, mapped
-/// from spellings at `syn/parser/expression.rs:78-140`. Every one is
-/// left-associative (`syn/parser/expression.rs:77`).
+/// from spellings in `infix_op` (`expr.rs:1066`). Arithmetic operators are
+/// associative, and the parser takes a following operator only when it binds
+/// strictly tighter (`if bp > min`), so they are left-associative. Comparisons
+/// and equality are not: chaining them without parentheses is a parse error,
+/// which never reaches this check.
 ///
 /// Every rank is distinguished, not only the arithmetic three, because the
 /// non-arithmetic ranks decide which arithmetic *runs*. `a AND b = "x" + 1`
@@ -478,8 +499,9 @@ mod tests {
 
     #[test]
     fn division_never_fails() {
-        // `[1,2,3] / 1` is `NaN`, not an error, so every pair must answer
-        // `Some` — and the operator is excluded from reporting anyway.
+        // `[1,2,3] / 1` is `NaN`, not an error. Interval division can fail, and
+        // interval is not a kind this module answers, so every pair it does
+        // answer must be `Some`. The operator is excluded from reporting.
         for left in ["array", "string", "object", "bool"] {
             assert!(
                 arith_result(ArithOp::Div, kind(left), kind("int")).is_some(),
@@ -591,6 +613,63 @@ mod tests {
         for spelling in ["+", "-", "*", "**", "==", "IN"] {
             assert!(!short_circuits(spelling), "{spelling} does not");
         }
+    }
+
+    #[test]
+    fn v4_left_the_answered_pairs_where_they_were() {
+        // Re-read at `284fe93af`. None of the pairs this module already answered
+        // flipped. The new names stay silent: `temporal_ops` accepts `date + 1`
+        // and `2 * 1w` (an interval), and a `None` from `value_kind` is what
+        // keeps those from being reported.
+        for name in [
+            "date",
+            "time",
+            "timestamp",
+            "interval",
+            "enum",
+            "i8",
+            "bigdecimal",
+        ] {
+            assert_eq!(value_kind(&scalar(name)), None, "{name} must stay unjudged");
+        }
+        // A negative factor fails at run time. The kind pair still succeeds,
+        // because `1s * 2` does, and the sign is not a kind.
+        assert_eq!(
+            arith_result(ArithOp::Mul, kind("duration"), kind("int")),
+            Some(ValueKind::Duration)
+        );
+        assert_eq!(
+            arith_result(ArithOp::Mul, kind("duration"), kind("decimal")),
+            Some(ValueKind::Duration)
+        );
+        assert_eq!(
+            arith_result(ArithOp::Mul, kind("int"), kind("duration")),
+            None
+        );
+        // `NumberKind::join`: int stays int, float absorbs int, decimal absorbs
+        // both. `bigdecimal` is not one of these kinds.
+        assert_eq!(
+            arith_result(ArithOp::Add, kind("int"), kind("int")),
+            Some(ValueKind::Int)
+        );
+        assert_eq!(
+            arith_result(ArithOp::Add, kind("int"), kind("float")),
+            Some(ValueKind::Float)
+        );
+        assert_eq!(
+            arith_result(ArithOp::Add, kind("float"), kind("decimal")),
+            Some(ValueKind::Decimal)
+        );
+        assert_eq!(
+            arith_result(ArithOp::Sub, kind("datetime"), kind("datetime")),
+            Some(ValueKind::Duration)
+        );
+        // Infinite datetimes overflow. The kind cannot see infinity, so the
+        // pair stays a duration.
+        assert_eq!(
+            arith_result(ArithOp::Add, kind("datetime"), kind("duration")),
+            Some(ValueKind::Datetime)
+        );
     }
 
     #[test]

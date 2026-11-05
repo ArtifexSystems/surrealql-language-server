@@ -355,6 +355,17 @@ fn closure_signature<'a>(variable: Node<'_>, ctx: &'a TypeCtx<'_>) -> Option<&'a
 /// wrong shape here would surface as a wrong `let-type` diagnostic on working
 /// code, which costs more than no shape at all.
 fn select_type(node: Node<'_>, ctx: &TypeCtx<'_>) -> TypeExpr {
+    // `EXPLAIN` returns the plan as text. `.contains('Index')` is
+    // `string::contains`. The prefix is a keyword on the select; the trailing
+    // form is an `ExplainClause`. Typing the plan as the select's rows reports
+    // that `array` has no such method.
+    let explained = k::find_child(node, k::EXPLAIN_CLAUSE).is_some()
+        || k::named_children(node)
+            .into_iter()
+            .any(|child| k::is_kw(child, ctx.source, "EXPLAIN"));
+    if explained {
+        return TypeExpr::Scalar("string".to_string());
+    }
     let tables = crate::semantic::analyzer::select_target_tables(node, ctx.source);
     if tables.is_empty() {
         return TypeExpr::Unknown;
@@ -1636,9 +1647,9 @@ fn regroup(chain: &Chain<'_>) -> Grouped {
 
 /// Precedence climbing over the flat list.
 ///
-/// Every operator the engine lists is left-associative
-/// (`syn/parser/expression.rs`), so the right-hand side may only absorb
-/// operators that bind *strictly* tighter — hence `power + 1`.
+/// Arithmetic operators are left-associative (`parser-next` `BINARY_BP`,
+/// `if bp > min`), so the right-hand side may only absorb operators that bind
+/// *strictly* tighter — hence `power + 1`.
 fn climb(chain: &Chain<'_>, index: &mut usize, min_power: u8) -> Grouped {
     let mut left = Grouped::Leaf(*index);
     while let Some(operator) = chain.operators.get(*index) {

@@ -1,9 +1,9 @@
 //! Which bare words SurrealQL accepts as a type name.
 //!
 //! SurrealDB's type grammar is a **closed keyword set**, not an open namespace.
-//! `parse_concrete_kind` ends with `_ => unexpected!(self, next, "a kind name")`
-//! (`surrealdb-core/src/syn/parser/kind.rs:218`), so an unrecognised word is a
-//! parse failure in the engine and the query never runs.
+//! An unrecognised word is a parse failure in the engine and the query never
+//! runs. At 4.0.0 that rejection is `unexpected("a kind name")` in
+//! `parser-next/src/parse/kind.rs`.
 //!
 //! That is the whole reason this module can be certain where
 //! [`crate::semantic::assign`] deliberately is not. `assign` answers "is this
@@ -17,24 +17,68 @@
 
 /// The type names SurrealDB's kind grammar accepts.
 ///
-/// Transcribed from the `t!("…")` arms of `parse_concrete_kind` and
-/// `parse_inner_single_kind` (`syn/parser/kind.rs:45-220`), then verified one name
-/// at a time against a live engine (version 3.2.3).
+/// Transcribed from the kind parser. The first line was read from
+/// `parse_concrete_kind` (`syn/parser/kind.rs:45-220`) and checked against a
+/// live 3.2.3 engine. The second line was read from
+/// `parser-next/src/parse/kind.rs` at SurrealDB `284fe93af` (4.0.0): the sized
+/// numbers, `bigdecimal`, `date`, `time`, `timestamp`, `interval` and `enum`.
 ///
-/// Two entries need a word of explanation:
+/// Three entries need a word of explanation:
 ///
 /// * `option` is here although it is legal *only* as `option<T>` — bare `option`
-///   fails with `expected <`. Arity is a separate rule this module does not model,
-///   so the name counts as known.
+///   fails with `expected <`. `enum` is the same: the parser accepts it only as
+///   `enum<'a', 'b'>`. Arity is a separate rule this module does not model, so
+///   the name counts as known.
+/// * `i64` is the engine's spelling of `int`, and `f64` of `float`. Both words
+///   parse, so both are known.
 /// * `value` is deliberately **absent**. `LET $x: value = 1` fails with
 ///   ``Unexpected token `VALUE`, expected a kind name``, even though `VALUE` is a
 ///   keyword elsewhere in the language. Note that `assign::PRIMITIVES` does list
 ///   `value`, because there it means "the top of the lattice", not "a name an
 ///   author may write".
 pub const KIND_NAMES: &[&str] = &[
-    "any", "array", "bool", "bytes", "datetime", "decimal", "duration", "file", "float",
-    "function", "geometry", "int", "none", "null", "number", "object", "option", "point", "range",
-    "record", "regex", "set", "string", "table", "uuid",
+    "any",
+    "array",
+    "bool",
+    "bytes",
+    "datetime",
+    "decimal",
+    "duration",
+    "file",
+    "float",
+    "function",
+    "geometry",
+    "int",
+    "none",
+    "null",
+    "number",
+    "object",
+    "option",
+    "point",
+    "range",
+    "record",
+    "regex",
+    "set",
+    "string",
+    "table",
+    "uuid",
+    "bigdecimal",
+    "date",
+    "enum",
+    "f16",
+    "f32",
+    "f64",
+    "i16",
+    "i32",
+    "i64",
+    "i8",
+    "interval",
+    "time",
+    "timestamp",
+    "u16",
+    "u32",
+    "u64",
+    "u8",
 ];
 
 /// The two boolean literal types, which reach a type position as a bare
@@ -90,8 +134,10 @@ pub fn takes_foreign_arguments(name: &str) -> bool {
 ///
 /// Two guards, both borrowed from [`super::analyzer`]'s `keyword_typo_hint`:
 ///
-/// * a `jaro_winkler` score above [`NEAR_MISS_THRESHOLD`], and
-/// * a length difference of three characters or less.
+/// * a `jaro_winkler` score above [`NEAR_MISS_THRESHOLD`],
+/// * a length difference of three characters or less, and
+/// * the same first letter. `num` is three from both `number` and `enum`, and
+///   without the letter `enum` wins.
 ///
 /// The length guard is what makes this safe on a list of very short words. Without
 /// it the prefix bonus pairs any two names that merely start alike. Three rather
@@ -105,23 +151,22 @@ pub fn takes_foreign_arguments(name: &str) -> bool {
 /// names. It is **not** sound as a prefilter: `person` and `personaddress` differ
 /// by 7 characters and still score 0.892, so on a table or field sweep it would
 /// silently drop real near-misses. It is defensible here only because
-/// [`KIND_NAMES`] is a closed list of 25 short words where a loose match is worse
-/// than no match, and because 25 candidates cost nothing to score.
+/// [`KIND_NAMES`] is a closed list of short words where a loose match is worse
+/// than no match, and because the candidates cost nothing to score.
 ///
 /// The sound prefilter, for the sweeps where speed matters, is
 /// [`crate::semantic::model::can_reach_near_miss_threshold`].
 ///
 /// [`NEAR_MISS_THRESHOLD`]: crate::semantic::model::NEAR_MISS_THRESHOLD
 pub fn nearest(name: &str) -> Option<&'static str> {
+    let query = name.to_ascii_lowercase();
     KIND_NAMES
         .iter()
-        .filter(|known| known.len().abs_diff(name.len()) <= 3)
-        .map(|known| {
-            (
-                strsim::jaro_winkler(&name.to_ascii_lowercase(), known),
-                *known,
-            )
+        .filter(|known| {
+            known.len().abs_diff(query.len()) <= 3
+                && known.starts_with(query.chars().next().unwrap_or('\0'))
         })
+        .map(|known| (strsim::jaro_winkler(&query, known), *known))
         .filter(|(score, _)| *score > crate::semantic::model::NEAR_MISS_THRESHOLD)
         .max_by(|left, right| {
             left.0
@@ -134,6 +179,27 @@ pub fn nearest(name: &str) -> Option<&'static str> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn accepts_the_kind_names_surrealdb_4_added() {
+        // `parser-next/src/parse/kind.rs` at 284fe93af. A missing name here is
+        // an `unknown-type` on code the engine parses.
+        for name in [
+            "date",
+            "time",
+            "timestamp",
+            "interval",
+            "enum",
+            "i8",
+            "u64",
+            "f16",
+            "f64",
+            "i64",
+            "bigdecimal",
+        ] {
+            assert!(is_known(name), "{name} must be known");
+        }
+    }
 
     #[test]
     fn accepts_every_name_the_engine_accepts() {
