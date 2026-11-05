@@ -1886,8 +1886,8 @@ impl MergedSemanticModel {
                 title: format!("Add PERMISSIONS clause to table `{}`", table.name),
                 kind: Some(CodeActionKind::REFACTOR_REWRITE),
                 edit: Some(WorkspaceEdit {
-                    document_changes: Some(DocumentChanges::Operations(vec![ls_types::DocumentChangeOperation::Edit(
-                        TextDocumentEdit {
+                    document_changes: Some(DocumentChanges::Operations(vec![
+                        ls_types::DocumentChangeOperation::Edit(TextDocumentEdit {
                             text_document: OptionalVersionedTextDocumentIdentifier {
                                 uri: uri.clone(),
                                 version: None,
@@ -1897,10 +1897,12 @@ impl MergedSemanticModel {
                                     start: table.location.range.end,
                                     end: table.location.range.end,
                                 },
-                                new_text: " PERMISSIONS FOR select FULL, create NONE, update NONE, delete NONE".to_string(),
+                                new_text:
+                                    " PERMISSIONS FOR select FULL FOR create, update, delete NONE"
+                                        .to_string(),
                             })],
-                        },
-                    )])),
+                        }),
+                    ])),
                     ..WorkspaceEdit::default()
                 }),
                 ..CodeAction::default()
@@ -3245,6 +3247,7 @@ mod tests {
             references: Vec::new(),
             syntax_diagnostics: Vec::new(),
             document_symbols: Vec::new(),
+            param_references: Vec::new(),
         };
         let mut workspace = WorkspaceIndex::default();
         workspace
@@ -3304,6 +3307,7 @@ mod tests {
             target_refs: Vec::new(),
             field_refs: Vec::new(),
             target_resolution: TargetResolution::Static,
+            enclosing: None,
         };
         let result = model.semantic_diagnostics(
             &DocumentAnalysis {
@@ -3324,6 +3328,7 @@ mod tests {
                 references: Vec::new(),
                 syntax_diagnostics: Vec::new(),
                 document_symbols: Vec::new(),
+                param_references: Vec::new(),
             },
             &settings,
         );
@@ -3387,10 +3392,12 @@ mod tests {
                     target_refs: Vec::new(),
                     field_refs: Vec::new(),
                     target_resolution: TargetResolution::Static,
+                    enclosing: None,
                 }],
                 references: Vec::new(),
                 syntax_diagnostics: Vec::new(),
                 document_symbols: Vec::new(),
+                param_references: Vec::new(),
             },
             &settings,
         );
@@ -3456,6 +3463,7 @@ mod tests {
             target_refs: Vec::new(),
             field_refs: Vec::new(),
             target_resolution: TargetResolution::Static,
+            enclosing: None,
         };
 
         let diagnostics = model.semantic_diagnostics(
@@ -3480,6 +3488,7 @@ mod tests {
                 references: Vec::new(),
                 syntax_diagnostics: Vec::new(),
                 document_symbols: Vec::new(),
+                param_references: Vec::new(),
             },
             &settings,
         );
@@ -3524,6 +3533,7 @@ mod tests {
                 references: Vec::new(),
                 syntax_diagnostics: Vec::new(),
                 document_symbols: Vec::new(),
+                param_references: Vec::new(),
             }),
         );
         let model = MergedSemanticModel::build(&workspace, &Default::default());
@@ -3575,6 +3585,7 @@ mod tests {
                 references: Vec::new(),
                 syntax_diagnostics: Vec::new(),
                 document_symbols: Vec::new(),
+                param_references: Vec::new(),
             }),
         );
         let model = MergedSemanticModel::build(&workspace, &Default::default());
@@ -3637,6 +3648,7 @@ mod tests {
             references: Vec::new(),
             syntax_diagnostics: Vec::new(),
             document_symbols: Vec::new(),
+            param_references: Vec::new(),
         };
         let mut workspace = WorkspaceIndex::default();
         workspace
@@ -3774,6 +3786,7 @@ mod tests {
             target_refs: Vec::new(),
             field_refs: Vec::new(),
             target_resolution: TargetResolution::Static,
+            enclosing: None,
         };
 
         let items = model.completion_items("em", false, None, Some(&single_table), None);
@@ -3795,6 +3808,7 @@ mod tests {
             target_refs: Vec::new(),
             field_refs: Vec::new(),
             target_resolution: TargetResolution::Static,
+            enclosing: None,
         };
         let items = model.completion_items("em", false, None, Some(&multi_table), None);
         assert!(items.iter().any(|item| item.label == "person.email"));
@@ -3936,6 +3950,7 @@ mod tests {
             target_refs: Vec::new(),
             field_refs: Vec::new(),
             target_resolution: TargetResolution::Static,
+            enclosing: None,
         };
         let items = model.completion_items("", false, None, Some(&statement_fact), None);
 
@@ -4245,6 +4260,7 @@ mod tests {
             references: Vec::new(),
             syntax_diagnostics: Vec::new(),
             document_symbols: Vec::new(),
+            param_references: Vec::new(),
         };
         (model, analysis)
     }
@@ -4275,6 +4291,51 @@ mod tests {
             })
             .expect("code+data diagnostic must yield the quick fix");
         assert_eq!(quick_fix.title, "Replace `prson` with `person`");
+    }
+
+    #[test]
+    fn the_add_permissions_action_writes_a_clause_the_engine_accepts() {
+        let uri = Uri::from_str("file:///workspace/schema.surql").expect("valid uri");
+        let source = "DEFINE TABLE person SCHEMAFULL;\n";
+        let analysis =
+            crate::semantic::analyzer::analyze_document(uri.clone(), source, SymbolOrigin::Local)
+                .expect("analysis");
+        let model = MergedSemanticModel::default();
+        let actions = model.code_actions(&uri, &analysis, &[]);
+        let edit = actions
+            .iter()
+            .find_map(|action| match action {
+                ls_types::CodeActionOrCommand::CodeAction(action)
+                    if action.title.starts_with("Add PERMISSIONS clause") =>
+                {
+                    match action.edit.as_ref()?.document_changes.as_ref()? {
+                        ls_types::DocumentChanges::Operations(ops) => {
+                            ops.iter().find_map(|op| match op {
+                                ls_types::DocumentChangeOperation::Edit(edit) => {
+                                    match edit.edits.first()? {
+                                        ls_types::OneOf::Left(edit) => Some(edit.clone()),
+                                        _ => None,
+                                    }
+                                }
+                                _ => None,
+                            })
+                        }
+                        _ => None,
+                    }
+                }
+                _ => None,
+            })
+            .expect("a table without permissions offers the action");
+        let at = edit.range.start.character as usize;
+        let edited = format!("{}{}{}", &source[..at], edit.new_text, &source[at..]);
+        let again = crate::semantic::analyzer::analyze_document(uri, &edited, SymbolOrigin::Local)
+            .expect("analysis");
+        assert!(
+            again.syntax_diagnostics.is_empty(),
+            "{edited}: {:?}",
+            again.syntax_diagnostics
+        );
+        assert!(!again.tables[0].permissions.is_empty(), "{edited}");
     }
 
     #[test]

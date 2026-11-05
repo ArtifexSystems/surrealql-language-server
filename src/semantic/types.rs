@@ -246,6 +246,21 @@ pub struct QueryFact {
     /// for `$param` / expression targets).
     #[serde(default)]
     pub target_resolution: TargetResolution,
+    /// The smallest definition whose range contains this statement.
+    /// `None` when the statement sits at file scope.
+    #[serde(default)]
+    pub enclosing: Option<String>,
+}
+
+/// A use of a `DEFINE PARAM` or of a function's own parameter.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ParamReference {
+    pub name: String,
+    /// The definition the use sits in. A function parameter's owner is that
+    /// function. `None` is file scope.
+    pub enclosing: Option<String>,
+    pub location: Location,
+    pub selection_range: Range,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -282,6 +297,8 @@ pub struct DocumentAnalysis {
     pub accesses: Vec<AccessDef>,
     pub analyzers: Vec<AnalyzerDef>,
     pub query_facts: Vec<QueryFact>,
+    /// Uses of `DEFINE PARAM` names and of function parameters.
+    pub param_references: Vec<ParamReference>,
     /// Every `RELATE a->edge->b` this document writes, in source order.
     pub edge_observations: Vec<EdgeObservation>,
     pub references: Vec<SymbolReference>,

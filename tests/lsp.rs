@@ -803,6 +803,7 @@ fn hover_for_js_function_shows_javascript_badge() {
         references: Vec::new(),
         syntax_diagnostics: Vec::new(),
         document_symbols: Vec::new(),
+        param_references: Vec::new(),
     };
     ws.documents.insert(u, Arc::new(analysis));
     let model = MergedSemanticModel::build(&ws, &Default::default());
@@ -862,6 +863,7 @@ fn hover_for_surql_function_with_return_type_shows_arrow() {
         references: Vec::new(),
         syntax_diagnostics: Vec::new(),
         document_symbols: Vec::new(),
+        param_references: Vec::new(),
     };
     ws.documents.insert(u, Arc::new(analysis));
     let model = MergedSemanticModel::build(&ws, &Default::default());
@@ -919,6 +921,7 @@ fn hover_for_table_shows_schema_and_permissions() {
             references: Vec::new(),
             syntax_diagnostics: Vec::new(),
             document_symbols: Vec::new(),
+            param_references: Vec::new(),
         }),
     );
     let model = MergedSemanticModel::build(&ws, &Default::default());
@@ -996,6 +999,7 @@ fn completion_includes_user_js_function() {
             references: Vec::new(),
             syntax_diagnostics: Vec::new(),
             document_symbols: Vec::new(),
+            param_references: Vec::new(),
         }),
     );
     let model = MergedSemanticModel::build(&ws, &Default::default());
@@ -1063,6 +1067,7 @@ fn completion_for_fields_scoped_to_statement_target_table() {
         target_refs: Vec::new(),
         field_refs: Vec::new(),
         target_resolution: TargetResolution::Static,
+        enclosing: None,
     };
     let items = model.completion_items("pr", false, None, Some(&fact), None);
     assert!(items.iter().any(|i| i.label == "price"));
@@ -1113,10 +1118,12 @@ fn no_diagnostics_for_allowed_permission() {
             target_refs: Vec::new(),
             field_refs: Vec::new(),
             target_resolution: TargetResolution::Static,
+            enclosing: None,
         }],
         references: Vec::new(),
         syntax_diagnostics: Vec::new(),
         document_symbols: Vec::new(),
+        param_references: Vec::new(),
     };
     let diagnostics = model.semantic_diagnostics(&analysis, &ServerSettings::default());
     assert!(diagnostics.is_empty());
@@ -1169,10 +1176,12 @@ fn error_diagnostic_for_denied_permission() {
             target_refs: Vec::new(),
             field_refs: Vec::new(),
             target_resolution: TargetResolution::Static,
+            enclosing: None,
         }],
         references: Vec::new(),
         syntax_diagnostics: Vec::new(),
         document_symbols: Vec::new(),
+        param_references: Vec::new(),
     };
     let diagnostics = model.semantic_diagnostics(&analysis, &ServerSettings::default());
     assert_eq!(diagnostics.len(), 1);
@@ -1213,10 +1222,12 @@ fn warning_for_unknown_table_in_query() {
             target_refs: Vec::new(),
             field_refs: Vec::new(),
             target_resolution: TargetResolution::Static,
+            enclosing: None,
         }],
         references: Vec::new(),
         syntax_diagnostics: Vec::new(),
         document_symbols: Vec::new(),
+        param_references: Vec::new(),
     };
     let diagnostics = model.semantic_diagnostics(&analysis, &ServerSettings::default());
     assert!(!diagnostics.is_empty());
@@ -1304,10 +1315,12 @@ fn role_based_permission_allowed_for_matching_context() {
             target_refs: Vec::new(),
             field_refs: Vec::new(),
             target_resolution: TargetResolution::Static,
+            enclosing: None,
         }],
         references: Vec::new(),
         syntax_diagnostics: Vec::new(),
         document_symbols: Vec::new(),
+        param_references: Vec::new(),
     };
     let diagnostics = model.semantic_diagnostics(&analysis, &settings);
     assert!(
@@ -1479,6 +1492,7 @@ fn local_function_overrides_remote() {
         references: Vec::new(),
         syntax_diagnostics: Vec::new(),
         document_symbols: Vec::new(),
+        param_references: Vec::new(),
     };
     let local = DocumentAnalysis {
         edge_observations: Vec::new(),
@@ -1512,6 +1526,7 @@ fn local_function_overrides_remote() {
         references: Vec::new(),
         syntax_diagnostics: Vec::new(),
         document_symbols: Vec::new(),
+        param_references: Vec::new(),
     };
     let mut ws = WorkspaceIndex::default();
     ws.documents.insert(remote.uri.clone(), Arc::new(remote));
@@ -1600,6 +1615,7 @@ fn workspace_symbols_search_covers_tables_fields_functions() {
             references: Vec::new(),
             syntax_diagnostics: Vec::new(),
             document_symbols: Vec::new(),
+            param_references: Vec::new(),
         }),
     );
     let model = MergedSemanticModel::build(&ws, &Default::default());
@@ -1648,6 +1664,7 @@ fn code_action_suggests_add_permissions_for_table_without_rules() {
         references: Vec::new(),
         syntax_diagnostics: Vec::new(),
         document_symbols: Vec::new(),
+        param_references: Vec::new(),
     };
     let model = MergedSemanticModel::default();
     let actions = model.code_actions(&u, &analysis, &[]);
@@ -6707,7 +6724,11 @@ fn a_block_if_in_a_permission_where_parses() {
     let source = "DEFINE TABLE note TYPE NORMAL SCHEMAFULL PERMISSIONS FOR select FULL, \
                   FOR create WHERE (IF kind = 'a' { true } ELSE { false });";
     let diagnostics = diagnostics_for(source);
-    assert!(diagnostics.is_empty(), "got {:?}", messages_of(&diagnostics));
+    assert!(
+        diagnostics.is_empty(),
+        "got {:?}",
+        messages_of(&diagnostics)
+    );
 }
 
 #[test]
@@ -6715,6 +6736,9 @@ fn a_block_if_as_an_object_value_parses() {
     let source = "DEFINE FUNCTION fn::step($skip: bool) -> object { \
                   RETURN { first: false, acc: IF $skip { 1 } ELSE { 2 } }; };";
     let diagnostics = diagnostics_for(source);
-    assert!(diagnostics.is_empty(), "got {:?}", messages_of(&diagnostics));
+    assert!(
+        diagnostics.is_empty(),
+        "got {:?}",
+        messages_of(&diagnostics)
+    );
 }
-

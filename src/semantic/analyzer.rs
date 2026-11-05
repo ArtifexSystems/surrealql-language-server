@@ -69,6 +69,7 @@ pub fn analyze_document_with_limit(
         accesses: Vec::new(),
         analyzers: Vec::new(),
         query_facts: Vec::with_capacity(statement_hint),
+        param_references: Vec::new(),
         // Most documents hold no RELATE at all, so this one starts empty
         // rather than at the statement hint.
         edge_observations: Vec::new(),
@@ -113,6 +114,7 @@ pub fn analyze_document_with_limit(
     );
     analysis.line_index = line_index;
     analysis.text = owned_text;
+    record_param_references_and_enclosing(&mut analysis);
     Some(analysis)
 }
 
@@ -1033,6 +1035,7 @@ fn extract_query_fact(
         target_refs,
         field_refs,
         target_resolution,
+        enclosing: None,
     });
 }
 
@@ -1211,6 +1214,295 @@ fn inferred_field(
             ),
         }),
         location: location(uri, source, lines, node),
+    }
+}
+
+/// The smallest explicit definition containing `range`, named the way the
+/// schema graph names definitions.
+fn enclosing_definition(
+    definitions: &[(String, ls_types::Range)],
+    range: &ls_types::Range,
+) -> Option<String> {
+    let mut best: Option<&(String, ls_types::Range)> = None;
+    for definition in definitions {
+        if !range_contains(&definition.1, range) {
+            continue;
+        }
+        best = Some(match best {
+            Some(current) if span_len(&current.1) <= span_len(&definition.1) => current,
+            _ => definition,
+        });
+    }
+    best.map(|(name, _)| name.clone())
+}
+
+fn range_contains(outer: &ls_types::Range, inner: &ls_types::Range) -> bool {
+    point_before(outer.start, inner.start) && point_after(outer.end, inner.end)
+}
+
+fn point_before(outer: ls_types::Position, inner: ls_types::Position) -> bool {
+    outer.line < inner.line || (outer.line == inner.line && outer.character <= inner.character)
+}
+
+fn point_after(outer: ls_types::Position, inner: ls_types::Position) -> bool {
+    outer.line > inner.line || (outer.line == inner.line && outer.character >= inner.character)
+}
+
+fn span_len(range: &ls_types::Range) -> u64 {
+    let lines = range.end.line.saturating_sub(range.start.line) as u64;
+    lines * 10_000 + range.end.character.saturating_sub(range.start.character) as u64
+}
+
+struct BoundName {
+    name: String,
+    scope_start: usize,
+    scope_end: usize,
+    function: Option<String>,
+}
+
+fn explicit_definition_spans(analysis: &DocumentAnalysis) -> Vec<(String, ls_types::Range)> {
+    let mut spans = Vec::new();
+    for table in &analysis.tables {
+        if table.explicit {
+            spans.push((table.name.clone(), table.location.range));
+        }
+    }
+    for field in &analysis.fields {
+        if field.explicit {
+            spans.push((
+                format!("{}.{}", field.table, field.name),
+                field.location.range,
+            ));
+        }
+    }
+    for index in &analysis.indexes {
+        spans.push((
+            format!("{}.{}", index.table, index.name),
+            index.location.range,
+        ));
+    }
+    for event in &analysis.events {
+        spans.push((
+            format!("{}.{}", event.table, event.name),
+            event.location.range,
+        ));
+    }
+    for function in &analysis.functions {
+        spans.push((function.name.clone(), function.location.range));
+    }
+    for param in &analysis.params {
+        spans.push((param.name.clone(), param.location.range));
+    }
+    for access in &analysis.accesses {
+        spans.push((access.name.clone(), access.location.range));
+    }
+    for analyzer in &analysis.analyzers {
+        spans.push((analyzer.name.clone(), analyzer.location.range));
+    }
+    spans
+}
+
+fn record_param_references_and_enclosing(analysis: &mut DocumentAnalysis) {
+    let definitions = explicit_definition_spans(analysis);
+    for fact in &mut analysis.query_facts {
+        fact.enclosing = enclosing_definition(&definitions, &fact.location.range);
+    }
+    let root = analysis.tree.root_node();
+    let mut bindings = Vec::new();
+    collect_local_bindings(root, root.end_byte(), &analysis.text, &mut bindings);
+    let define_params: std::collections::HashSet<String> = analysis
+        .params
+        .iter()
+        .map(|param| param.name.clone())
+        .collect();
+    let mut references = Vec::new();
+    collect_param_uses(
+        root,
+        &analysis.text,
+        &analysis.line_index,
+        &analysis.uri,
+        &bindings,
+        &define_params,
+        &definitions,
+        &mut references,
+    );
+    analysis.param_references = references;
+}
+
+fn collect_local_bindings(
+    node: Node<'_>,
+    scope_end: usize,
+    source: &str,
+    out: &mut Vec<BoundName>,
+) {
+    match node.kind() {
+        k::LET_STATEMENT => {
+            let children = k::named_children(node);
+            if let Some(value) = children
+                .iter()
+                .find(|child| child.kind() != k::PARAM_DEFINITION && !k::is_keyword(**child))
+            {
+                collect_local_bindings(*value, scope_end, source, out);
+            }
+            if let Some(name) = children
+                .iter()
+                .find(|child| child.kind() == k::PARAM_DEFINITION)
+                .and_then(|definition| variable_name_text(*definition, source))
+            {
+                out.push(BoundName {
+                    name,
+                    scope_start: node.end_byte(),
+                    scope_end,
+                    function: None,
+                });
+            }
+            return;
+        }
+        k::DEFINE_STATEMENT => {
+            if define_form(node, source).as_deref() == Some("function")
+                && let Some(body) = k::find_child(node, k::BLOCK)
+                && let Some(function) = function_name(node, source)
+            {
+                for definition in k::named_children(node)
+                    .into_iter()
+                    .filter(|child| child.kind() == k::PARAM_DEFINITION)
+                {
+                    let Some(name) = variable_name_text(definition, source) else {
+                        continue;
+                    };
+                    out.push(BoundName {
+                        name,
+                        scope_start: body.start_byte(),
+                        scope_end: body.end_byte(),
+                        function: Some(function.clone()),
+                    });
+                }
+            }
+        }
+        k::FOR_STATEMENT => {
+            let children = k::named_children(node);
+            if let Some(name_node) = children
+                .iter()
+                .find(|child| child.kind() == k::VARIABLE_NAME)
+                && let Some(name) = text_of(source, *name_node)
+                && let Some(body) = k::find_child(node, k::BLOCK)
+            {
+                out.push(BoundName {
+                    name,
+                    scope_start: body.start_byte(),
+                    scope_end: body.end_byte(),
+                    function: None,
+                });
+            }
+        }
+        k::CLOSURE => {
+            for definition in k::named_children(node)
+                .into_iter()
+                .filter(|child| child.kind() == k::PARAM_DEFINITION)
+            {
+                let Some(name) = variable_name_text(definition, source) else {
+                    continue;
+                };
+                out.push(BoundName {
+                    name,
+                    scope_start: node.start_byte(),
+                    scope_end: node.end_byte(),
+                    function: None,
+                });
+            }
+        }
+        _ => {}
+    }
+    let inner_end = if node.kind() == k::BLOCK {
+        node.end_byte()
+    } else {
+        scope_end
+    };
+    let mut cursor = node.walk();
+    for child in node.named_children(&mut cursor) {
+        collect_local_bindings(child, inner_end, source, out);
+    }
+}
+
+fn function_name(node: Node<'_>, source: &str) -> Option<String> {
+    k::named_children(node)
+        .into_iter()
+        .find(|child| child.kind() == k::CUSTOM_FUNCTION_NAME)
+        .and_then(|child| text_of(source, child))
+}
+
+fn variable_name_text(definition: Node<'_>, source: &str) -> Option<String> {
+    k::named_children(definition)
+        .into_iter()
+        .find(|child| child.kind() == k::VARIABLE_NAME)
+        .and_then(|child| text_of(source, child))
+}
+
+fn binding_site(node: Node<'_>) -> bool {
+    node.parent().is_some_and(|parent| {
+        matches!(
+            parent.kind(),
+            k::PARAM_DEFINITION | k::FOR_STATEMENT | k::DEFINE_STATEMENT
+        )
+    })
+}
+
+fn resolve_binding<'a>(bindings: &'a [BoundName], name: &str, at: usize) -> Option<&'a BoundName> {
+    bindings.iter().rev().find(|binding| {
+        binding.name == name && at >= binding.scope_start && at <= binding.scope_end
+    })
+}
+
+fn collect_param_uses(
+    node: Node<'_>,
+    source: &str,
+    lines: &LineIndex,
+    uri: &Uri,
+    bindings: &[BoundName],
+    define_params: &std::collections::HashSet<String>,
+    definitions: &[(String, ls_types::Range)],
+    out: &mut Vec<crate::semantic::types::ParamReference>,
+) {
+    if node.is_error() || node.is_missing() {
+        return;
+    }
+    if node.kind() == k::VARIABLE_NAME {
+        if !binding_site(node)
+            && let Some(name) = text_of(source, node)
+        {
+            let range = lines.range(source, node.start_byte(), node.end_byte());
+            if let Some(binding) = resolve_binding(bindings, &name, node.start_byte()) {
+                if let Some(function) = &binding.function {
+                    out.push(crate::semantic::types::ParamReference {
+                        name,
+                        enclosing: Some(function.clone()),
+                        location: Location::new(uri.clone(), range),
+                        selection_range: range,
+                    });
+                }
+            } else if define_params.contains(&name) {
+                out.push(crate::semantic::types::ParamReference {
+                    name,
+                    enclosing: enclosing_definition(definitions, &range),
+                    location: Location::new(uri.clone(), range),
+                    selection_range: range,
+                });
+            }
+        }
+        return;
+    }
+    let mut cursor = node.walk();
+    for child in node.named_children(&mut cursor) {
+        collect_param_uses(
+            child,
+            source,
+            lines,
+            uri,
+            bindings,
+            define_params,
+            definitions,
+            out,
+        );
     }
 }
 
@@ -2961,6 +3253,50 @@ mod tests {
                 ("$times", Some(scalar("int"))),
                 ("$extra", None),
             ]
+        );
+    }
+
+    #[test]
+    fn a_query_inside_a_function_records_that_function() {
+        let analysis = analyze("DEFINE FUNCTION fn::outer() {\n  SELECT * FROM person;\n};\n");
+        let fact = analysis
+            .query_facts
+            .iter()
+            .find(|fact| fact.action == QueryAction::Select)
+            .expect("select fact");
+        assert_eq!(fact.enclosing.as_deref(), Some("fn::outer"));
+    }
+
+    #[test]
+    fn a_defined_parameter_use_is_a_reference_from_its_enclosing_function() {
+        let analysis = analyze(
+            "DEFINE PARAM $limit VALUE 1;\nDEFINE FUNCTION fn::outer() {\n  RETURN $limit;\n};\n",
+        );
+        assert!(analysis.param_references.iter().any(|reference| {
+            reference.name == "$limit" && reference.enclosing.as_deref() == Some("fn::outer")
+        }));
+    }
+
+    #[test]
+    fn a_function_parameter_use_names_that_function() {
+        let analysis = analyze("DEFINE FUNCTION fn::outer($value: int) {\n  RETURN $value;\n};\n");
+        assert!(analysis.param_references.iter().any(|reference| {
+            reference.name == "$value" && reference.enclosing.as_deref() == Some("fn::outer")
+        }));
+    }
+
+    #[test]
+    fn a_let_shadows_a_defined_parameter() {
+        let analysis = analyze(
+            "DEFINE PARAM $limit VALUE 1;\nDEFINE FUNCTION fn::outer() {\n  LET $limit = 2;\n  RETURN $limit;\n};\n",
+        );
+        assert!(
+            analysis
+                .param_references
+                .iter()
+                .all(|reference| reference.name != "$limit"),
+            "{:?}",
+            analysis.param_references
         );
     }
 
