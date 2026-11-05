@@ -197,10 +197,19 @@ pub fn infer_expr_type(node: Node<'_>, ctx: &TypeCtx<'_>) -> TypeExpr {
         ))),
         k::OBJECT => object_literal_type(node, ctx),
 
-        k::RECORD_ID | k::RANGE_RECORD_ID => k::find_child(node, k::RECORD_TB_IDENT)
+        k::RECORD_ID => k::find_child(node, k::RECORD_TB_IDENT)
             .and_then(|table| k::text_of(ctx.source, table))
             .map(|table| TypeExpr::Record(vec![table.to_string()]))
             .unwrap_or_else(|| TypeExpr::Record(Vec::new())),
+        // `|t:5|` and `|t:2..5|` are mock record sets. They evaluate to the
+        // array of record ids they name (`language/mock/outside_from.surql`).
+        k::RANGE_RECORD_ID => TypeExpr::Array(Box::new(
+            k::find_child(node, k::RECORD_ID)
+                .and_then(|inner| k::find_child(inner, k::RECORD_TB_IDENT))
+                .and_then(|table| k::text_of(ctx.source, table))
+                .map(|table| TypeExpr::Record(vec![table.to_string()]))
+                .unwrap_or_else(|| TypeExpr::Record(Vec::new())),
+        )),
 
         // `<int> "5"` — the cast target wins.
         k::TYPE_CAST => k::named_children(node)
@@ -2315,6 +2324,18 @@ fn check_let_annotations(node: Node<'_>, ctx: &TypeCtx<'_>, out: &mut Vec<Diagno
             })
         {
             let actual = infer_expr_type(*value, ctx);
+            // The source keeps a length the parsed type drops. `set<int, 2>`
+            // is what the engine's sentence names; `set<int>` does not match it.
+            let declared_text = k::named_children(*definition)
+                .iter()
+                .find(|child| k::TYPE_KINDS.contains(&child.kind()))
+                .and_then(|child| k::text_of(ctx.source, *child))
+                .unwrap_or("");
+            let declared_text = if declared_text.is_empty() {
+                declared.to_string()
+            } else {
+                declared_text.to_string()
+            };
             // The whole-value verdict wins when it speaks: its message already
             // says the whole truth, so element messages would only repeat it.
             //
@@ -2329,7 +2350,7 @@ fn check_let_annotations(node: Node<'_>, ctx: &TypeCtx<'_>, out: &mut Vec<Diagno
                 out.push(diagnostic(
                     node_range(ctx, *value),
                     codes::LET_TYPE,
-                    format!("`{name}` is declared `{declared}` but the value is `{actual}`."),
+                    format!("`{name}` is declared `{declared_text}` but the value is `{actual}`."),
                 ));
             } else {
                 report_element_faults(
@@ -2340,10 +2361,12 @@ fn check_let_annotations(node: Node<'_>, ctx: &TypeCtx<'_>, out: &mut Vec<Diagno
                     out,
                     &|fault, label| match fault {
                         ElementFault::Element { actual, .. } => {
-                            format!("`{name}` is declared `{declared}` but {label} is `{actual}`.")
+                            format!(
+                                "`{name}` is declared `{declared_text}` but {label} is `{actual}`."
+                            )
                         }
                         ElementFault::Arity { expected, actual } => format!(
-                            "`{name}` is declared `{declared}`, which has {expected} elements, \
+                            "`{name}` is declared `{declared_text}`, which has {expected} elements, \
                              but the value has {actual}."
                         ),
                     },
@@ -2460,10 +2483,22 @@ fn check_one_field(
         // Same shape as `check_let_annotations`: the whole-value verdict wins
         // when it speaks, and the element walk runs only when it stays silent.
         if assignable(&actual, &declared).is_incompatible() {
+            // An empty object given to a `set` is refused when the field is
+            // defined, with `its DEFAULT does not coerce to `{set}``
+            // (`exec/migrate.rs`). A scalar that does not fit still fails later
+            // as `Couldn't coerce value for field`, which the other sentence names.
+            let message = if clause.kind() == k::DEFAULT_CLAUSE
+                && matches!(actual, TypeExpr::Object(_))
+                && matches!(declared, TypeExpr::Set(_))
+            {
+                format!("its DEFAULT does not coerce to `{declared}`")
+            } else {
+                format!("`{name}` is declared `{declared}` but this value is `{actual}`.")
+            };
             out.push(diagnostic(
                 node_range(ctx, payload),
                 codes::FIELD_TYPE,
-                format!("`{name}` is declared `{declared}` but this value is `{actual}`."),
+                message,
             ));
         } else {
             report_element_faults(
@@ -2621,16 +2656,26 @@ fn check_method_call(node: Node<'_>, ctx: &TypeCtx<'_>, out: &mut Vec<Diagnostic
         // anything. Three files in SurrealDB's own corpus do exactly that. Since
         // the server does not track which fields hold closures, an object method
         // it cannot find is unprovable rather than wrong.
-        if kind != "Object" {
-            out.push(diagnostic(
-                node_range(ctx, node),
-                codes::UNKNOWN_METHOD,
-                format!(
-                    "`{}` has no method `{method}`.",
-                    crate::semantic::method::kind_label(kind)
-                ),
-            ));
+        // An empty kind is the catch-all (regex, bool, uuid, and the rest).
+        // Their methods are not in this catalogue, so a missing name is not
+        // proof the method is absent. `/}/.test(...)` is one of those.
+        // `none` and `null` are the exception the engine states: it reports
+        // `no such method found for the none type`.
+        let absent = matches!(
+            &receiver_type,
+            TypeExpr::Scalar(name) if name == "none" || name == "null"
+        );
+        if kind == "Object" || (kind.is_empty() && !absent) {
+            return;
         }
+        out.push(diagnostic(
+            node_range(ctx, node),
+            codes::UNKNOWN_METHOD,
+            format!(
+                "`{}` has no method `{method}`.",
+                crate::semantic::method::kind_label(kind)
+            ),
+        ));
         return;
     };
 
@@ -2655,18 +2700,26 @@ fn check_method_call(node: Node<'_>, ctx: &TypeCtx<'_>, out: &mut Vec<Diagnostic
         // an editor that closes brackets writes `.at()` on the `(` keystroke.
         return;
     }
+    // The engine reports a failure inside an argument and does not also report
+    // the call. `"x".len((1 + "1"))` fails on the addition.
+    if any_argument_raises(&args, ctx) {
+        return;
+    }
 
-    let required = signature.required_arity().saturating_sub(1);
-    let maximum = signature.maximum_arity().map(|max| max.saturating_sub(1));
-    if args.len() < required || maximum.is_some_and(|max| args.len() > max) {
+    // `args` is the written list, so the comparison drops the receiver. The
+    // message adds it back: `value::expect` is 2 to 3 arguments, and
+    // `"a".len(5)` found 2, which is how the engine counts them.
+    let written_required = signature.required_arity().saturating_sub(1);
+    let written_maximum = signature.maximum_arity().map(|max| max.saturating_sub(1));
+    if args.len() < written_required || written_maximum.is_some_and(|max| args.len() > max) {
         out.push(diagnostic(
             node_range(ctx, arg_list),
             codes::ARGUMENT_COUNT,
             format!(
                 "`.{method}()` (`{}`) expects {}, found {}.",
                 resolved.function,
-                expected_arity_label(required, maximum),
-                args.len()
+                expected_arity_label(signature.required_arity(), signature.maximum_arity()),
+                args.len() + 1
             ),
         ));
         return;
@@ -2787,6 +2840,11 @@ fn check_builtin_call(
     if args.is_empty() {
         return;
     }
+    // `math::max(1 + "a", 2 - "b")` fails on the additions. The catalogue's
+    // one-array arity is unchanged; the count is not also reported.
+    if any_argument_raises(args, ctx) {
+        return;
+    }
 
     let required = signature.required_arity();
     let maximum = signature.maximum_arity();
@@ -2838,6 +2896,18 @@ fn check_builtin_call(
     }
 }
 
+/// An argument the operator check can already prove fails.
+///
+/// The engine evaluates arguments before it judges a call's count, so a
+/// provable failure inside an argument is the diagnostic, and the count is not.
+fn any_argument_raises(args: &[Node<'_>], ctx: &TypeCtx<'_>) -> bool {
+    args.iter().any(|argument| {
+        let mut raised = Vec::new();
+        check_binary_expressions(*argument, ctx, &mut raised);
+        !raised.is_empty()
+    })
+}
+
 /// The engine's own wording for an argument count (`fnc/args.rs:199-221`).
 fn expected_arity_label(required: usize, maximum: Option<usize>) -> String {
     match maximum {
@@ -2859,6 +2929,9 @@ fn check_user_call(
     ctx: &TypeCtx<'_>,
     out: &mut Vec<Diagnostic>,
 ) {
+    if any_argument_raises(args, ctx) {
+        return;
+    }
     let required = required_arity(&function.params);
     if args.len() < required || args.len() > function.params.len() {
         out.push(diagnostic(
@@ -2927,6 +3000,9 @@ fn check_closure_call(
             ),
         })
         .collect();
+    if any_argument_raises(&args, ctx) {
+        return;
+    }
     let required = required_arity(&params);
     if args.len() < required {
         let plural = if required == 1 { "" } else { "s" };

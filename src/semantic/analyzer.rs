@@ -244,12 +244,14 @@ pub fn collect_syntax_diagnostics_at(
     let mut diagnostics = Vec::new();
     // One slot per line, marked as `parse` diagnostics are pushed.
     let mut parse_rows = vec![false; lines.line_count()];
+    let defined_types = type_name::defined_type_names(source);
     collect_node_diagnostics(
         uri,
         source,
         lines,
         node,
         known_names,
+        &defined_types,
         limit,
         &mut parse_rows,
         &mut diagnostics,
@@ -2196,6 +2198,7 @@ fn collect_node_diagnostics(
     lines: &LineIndex,
     node: Node<'_>,
     known_names: &std::collections::HashSet<String>,
+    defined_types: &std::collections::HashSet<String>,
     limit: usize,
     parse_rows: &mut [bool],
     diagnostics: &mut Vec<Diagnostic>,
@@ -2229,6 +2232,7 @@ fn collect_node_diagnostics(
             lines,
             node,
             known_names,
+            defined_types,
             node.start_position().row,
             limit,
             parse_rows,
@@ -2237,13 +2241,14 @@ fn collect_node_diagnostics(
         return;
     }
 
-    // A type position holding a word the engine's kind grammar does not have.
-    // This sits in the syntax pass rather than beside the type checks in
-    // `infer` because the engine refuses to *parse* such a query, so the
-    // report must not disappear when `enable_type_checking` is off.
+    // A type position holding a word that is not a builtin kind, not a
+    // `DEFINE TYPE` name in this file, and not a named record-id component.
+    // SurrealDB 4.0 parses the last two. This sits in the syntax pass rather
+    // than beside the type checks in `infer` so the report does not disappear
+    // when `enable_type_checking` is off.
     if node.kind() == k::TYPE_NAME
         && !parse_failure_on_line(parse_rows, node)
-        && let Some(diagnostic) = unknown_type_diagnostic(source, lines, node)
+        && let Some(diagnostic) = unknown_type_diagnostic(source, lines, node, defined_types)
     {
         diagnostics.push(diagnostic);
         return;
@@ -2263,6 +2268,7 @@ fn collect_node_diagnostics(
             lines,
             child,
             known_names,
+            defined_types,
             limit,
             parse_rows,
             diagnostics,
@@ -2280,9 +2286,26 @@ fn collect_node_diagnostics(
 /// and `DefineStatement`. So the check needs no per-position plumbing, and it
 /// reaches nested arguments, union members, tuple elements and object-type field
 /// types for free.
-fn unknown_type_diagnostic(source: &str, lines: &LineIndex, node: Node<'_>) -> Option<Diagnostic> {
+///
+/// Two shapes the grammar still reads as a `TypeName` are types at 4.0.0: a
+/// name this file introduces with `DEFINE TYPE`, and a component label in
+/// `TYPE [city: string, time: datetime]`. The label is the word before the
+/// colon. The word after it is the component's type and is still checked.
+fn unknown_type_diagnostic(
+    source: &str,
+    lines: &LineIndex,
+    node: Node<'_>,
+    defined_types: &std::collections::HashSet<String>,
+) -> Option<Diagnostic> {
     let name = k::text_of(source, node)?;
     if name.is_empty() || type_name::is_known(name) {
+        return None;
+    }
+    if defined_types.contains(&name.to_ascii_lowercase()) {
+        return None;
+    }
+    // `TYPE [city: string]` — `city` is a record-id component, not a type.
+    if is_named_record_id_component(source, node) {
         return None;
     }
     // `record<person>` names a table, not a type.
@@ -2337,6 +2360,21 @@ fn unknown_type_diagnostic(source: &str, lines: &LineIndex, node: Node<'_>) -> O
 /// SurrealQL. The four constructors parse to the same shape as `array<int>`, so
 /// the argument is indistinguishable from a type by node kind alone; only the
 /// constructor name separates them.
+/// A named record-id component: the word immediately before `:` inside
+/// `TYPE [city: string, time: datetime]`.
+///
+/// The grammar's `ArrayType` is a comma-separated list of types, so `city`
+/// arrives as a `TypeName`. A type name is never written with a colon after
+/// it; the colon is what makes this word a label.
+fn is_named_record_id_component(source: &str, node: Node<'_>) -> bool {
+    let bytes = source.as_bytes();
+    let mut index = node.end_byte();
+    while index < bytes.len() && bytes[index].is_ascii_whitespace() {
+        index += 1;
+    }
+    bytes.get(index) == Some(&b':')
+}
+
 fn names_a_foreign_argument(source: &str, node: Node<'_>) -> bool {
     // Climb out of any enclosing `UnionType` first. `record<a | b>` nests the
     // table names one level deeper than `record<a>` does —
@@ -2470,6 +2508,7 @@ fn descend_into_error(
     lines: &LineIndex,
     node: Node<'_>,
     known_names: &std::collections::HashSet<String>,
+    defined_types: &std::collections::HashSet<String>,
     reported_row: usize,
     limit: usize,
     parse_rows: &mut [bool],
@@ -2496,6 +2535,7 @@ fn descend_into_error(
                     lines,
                     child,
                     known_names,
+                    defined_types,
                     reported_row,
                     limit,
                     parse_rows,
@@ -2513,6 +2553,7 @@ fn descend_into_error(
                     lines,
                     child,
                     known_names,
+                    defined_types,
                     child.start_position().row,
                     limit,
                     parse_rows,
@@ -2527,6 +2568,7 @@ fn descend_into_error(
             lines,
             child,
             known_names,
+            defined_types,
             limit,
             parse_rows,
             diagnostics,
@@ -3899,5 +3941,25 @@ mod tests {
             "unexpected diagnostics: {:?}",
             analysis.syntax_diagnostics
         );
+    }
+
+    #[test]
+    fn a_defined_type_and_a_record_id_component_are_not_unknown() {
+        let uri = Uri::from_str("file:///workspace/graph.surql").expect("valid uri");
+        let text = r#"
+        DEFINE TYPE mood AS 'sad' | 'ok';
+        LET $x: mood = 'ok';
+        DEFINE FIELD id ON reading TYPE [place: string, when: datetime];
+        LET $y: strng = 1;
+        "#;
+
+        let analysis = analyze_document(uri, text, SymbolOrigin::Local).expect("analysis");
+        let unknown: Vec<&str> = analysis
+            .syntax_diagnostics
+            .iter()
+            .filter(|diagnostic| diagnostic.message.starts_with("Unknown type"))
+            .map(|diagnostic| diagnostic.message.as_str())
+            .collect();
+        assert_eq!(unknown, ["Unknown type `strng`. Did you mean `string`?"]);
     }
 }

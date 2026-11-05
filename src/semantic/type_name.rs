@@ -1,9 +1,11 @@
 //! Which bare words SurrealQL accepts as a type name.
 //!
-//! SurrealDB's type grammar is a **closed keyword set**, not an open namespace.
-//! An unrecognised word is a parse failure in the engine and the query never
-//! runs. At 4.0.0 that rejection is `unexpected("a kind name")` in
-//! `parser-next/src/parse/kind.rs`.
+//! SurrealDB 4.0.0's kind parser (`parser-next/src/parse/kind.rs` at
+//! `284fe93af`) accepts the closed builtin list below. Any other ident is a
+//! named kind: a `DEFINE TYPE` name, not a parse error. The diagnostic that
+//! uses this list stays silent for a name the same file defines, and for a
+//! named record-id component. A word that is neither still reports, so a typo
+//! such as `strng` stays visible.
 //!
 //! That is the whole reason this module can be certain where
 //! [`crate::semantic::assign`] deliberately is not. `assign` answers "is this
@@ -176,6 +178,166 @@ pub fn nearest(name: &str) -> Option<&'static str> {
         .map(|(_, known)| known)
 }
 
+/// Names introduced by `DEFINE TYPE` in this file, lowercased.
+///
+/// The grammar has no `DEFINE TYPE` alternative, so the statement arrives as an
+/// error node and the name never becomes a definition the tree can walk. The
+/// text is the authority the engine uses: `DEFINE TYPE`, then optional
+/// `OVERWRITE` or `IF NOT EXISTS`, then the name. A name inside a string or a
+/// comment is not a definition.
+pub fn defined_type_names(source: &str) -> std::collections::HashSet<String> {
+    let bytes = source.as_bytes();
+    let mut names = std::collections::HashSet::new();
+    let mut index = 0;
+    while index < bytes.len() {
+        if !source.is_char_boundary(index) {
+            index += 1;
+            continue;
+        }
+        if bytes[index] == b'\'' || bytes[index] == b'"' {
+            index = skip_string(source, index);
+            continue;
+        }
+        if source[index..].starts_with("--") || source[index..].starts_with("//") {
+            index = source[index..]
+                .find('\n')
+                .map(|end| index + end + 1)
+                .unwrap_or(source.len());
+            continue;
+        }
+        if source[index..].starts_with("/*") {
+            index = source[index + 2..]
+                .find("*/")
+                .map(|end| index + 2 + end + 2)
+                .unwrap_or(source.len());
+            continue;
+        }
+        if is_ident_start(bytes[index]) {
+            let start = index;
+            index += 1;
+            while index < bytes.len() && is_ident_cont(bytes[index]) {
+                index += 1;
+            }
+            if source[start..index].eq_ignore_ascii_case("define")
+                && let Some(name) = type_defined_at(source, index)
+            {
+                names.insert(name);
+            }
+            continue;
+        }
+        index += source[index..]
+            .chars()
+            .next()
+            .map(|ch| ch.len_utf8())
+            .unwrap_or(1);
+    }
+    names
+}
+
+fn type_defined_at(source: &str, after_define: usize) -> Option<String> {
+    let (word, mut at) = next_word(source, after_define)?;
+    if word != "type" {
+        return None;
+    }
+    loop {
+        let (word, next) = next_word(source, at)?;
+        match word.as_str() {
+            "overwrite" => at = next,
+            "if" => {
+                let (not, next) = next_word(source, next)?;
+                if not != "not" {
+                    return None;
+                }
+                let (exists, next) = next_word(source, next)?;
+                if exists != "exists" {
+                    return None;
+                }
+                at = next;
+            }
+            name => return Some(name.to_string()),
+        }
+    }
+}
+
+fn next_word(source: &str, mut index: usize) -> Option<(String, usize)> {
+    index = skip_gap(source, index);
+    let bytes = source.as_bytes();
+    if index >= bytes.len() {
+        return None;
+    }
+    if bytes[index] == b'`' {
+        let end = source[index + 1..].find('`')?;
+        let name = source[index + 1..index + 1 + end].to_ascii_lowercase();
+        return Some((name, index + 1 + end + 1));
+    }
+    if !is_ident_start(bytes[index]) {
+        return None;
+    }
+    let start = index;
+    index += 1;
+    while index < bytes.len() && is_ident_cont(bytes[index]) {
+        index += 1;
+    }
+    Some((source[start..index].to_ascii_lowercase(), index))
+}
+
+fn skip_gap(source: &str, mut index: usize) -> usize {
+    let bytes = source.as_bytes();
+    loop {
+        while index < bytes.len() && bytes[index].is_ascii_whitespace() {
+            index += 1;
+        }
+        if index < bytes.len()
+            && (source[index..].starts_with("--") || source[index..].starts_with("//"))
+        {
+            index = source[index..]
+                .find('\n')
+                .map(|end| index + end + 1)
+                .unwrap_or(source.len());
+            continue;
+        }
+        if index < bytes.len() && source[index..].starts_with("/*") {
+            index = source[index + 2..]
+                .find("*/")
+                .map(|end| index + 2 + end + 2)
+                .unwrap_or(source.len());
+            continue;
+        }
+        return index;
+    }
+}
+
+fn skip_string(source: &str, start: usize) -> usize {
+    let bytes = source.as_bytes();
+    if source[start..].starts_with("\"\"\"") {
+        return source[start + 3..]
+            .find("\"\"\"")
+            .map(|end| start + 3 + end + 3)
+            .unwrap_or(source.len());
+    }
+    let quote = bytes[start];
+    let mut index = start + 1;
+    while index < bytes.len() {
+        if bytes[index] == b'\\' {
+            index += 2;
+            continue;
+        }
+        if bytes[index] == quote {
+            return index + 1;
+        }
+        index += 1;
+    }
+    source.len()
+}
+
+fn is_ident_start(byte: u8) -> bool {
+    byte.is_ascii_alphabetic() || byte == b'_'
+}
+
+fn is_ident_cont(byte: u8) -> bool {
+    byte.is_ascii_alphanumeric() || byte == b'_'
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -262,5 +424,31 @@ mod tests {
         for name in ["xxx", "zzz", "yyy", "text", "json", "char", "varchar"] {
             assert_eq!(nearest(name), None, "{name} must get no suggestion");
         }
+    }
+
+    #[test]
+    fn reads_define_type_names() {
+        let names = defined_type_names(
+            "DEFINE TYPE mood AS string;\n\
+             DEFINE TYPE IF NOT EXISTS PosInt AS int;\n\
+             DEFINE TYPE OVERWRITE `City` AS string;",
+        );
+        assert!(names.contains("mood"), "{names:?}");
+        assert!(names.contains("posint"), "{names:?}");
+        assert!(names.contains("city"), "{names:?}");
+    }
+
+    #[test]
+    fn ignores_a_define_type_that_is_only_text() {
+        let names = defined_type_names(
+            "RETURN \"DEFINE TYPE mood AS string\";\n-- DEFINE TYPE hidden AS int\n",
+        );
+        assert!(names.is_empty(), "{names:?}");
+    }
+
+    #[test]
+    fn reads_a_name_beside_a_multibyte_dash() {
+        let names = defined_type_names("— DEFINE TYPE mood AS string;\n");
+        assert!(names.contains("mood"), "{names:?}");
     }
 }
