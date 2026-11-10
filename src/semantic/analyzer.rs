@@ -68,6 +68,8 @@ pub fn analyze_document_with_limit(
         params: Vec::new(),
         accesses: Vec::new(),
         analyzers: Vec::new(),
+        others: Vec::new(),
+        call_sites: Vec::new(),
         query_facts: Vec::with_capacity(statement_hint),
         param_references: Vec::new(),
         // Most documents hold no RELATE at all, so this one starts empty
@@ -270,7 +272,8 @@ fn collect_statements(
     let kind = node.kind();
 
     if kind == k::DEFINE_STATEMENT {
-        match define_form(node, source).as_deref() {
+        let form = define_form(node, source);
+        match form.as_deref() {
             Some("table") => extract_table(node, source, lines, uri, origin, analysis),
             Some("field") => extract_field(node, source, lines, uri, origin, analysis),
             Some("event") => extract_event(node, source, lines, uri, origin, analysis),
@@ -279,18 +282,35 @@ fn collect_statements(
             Some("param") => extract_param(node, source, lines, uri, origin, analysis),
             Some("access" | "scope") => extract_access(node, source, lines, uri, origin, analysis),
             Some("analyzer") => extract_analyzer(node, source, lines, uri, origin, analysis),
-            _ => {
+            Some(_) => {
+                if !extract_other_define(node, source, lines, uri, analysis)
+                    && let Some(symbol) = statement_symbol(node, source, lines, uri)
+                {
+                    analysis.document_symbols.push(symbol);
+                }
+            }
+            None => {
                 if let Some(symbol) = statement_symbol(node, source, lines, uri) {
                     analysis.document_symbols.push(symbol);
                 }
             }
         }
-        // A DEFINE FUNCTION body can hold nested statements worth
-        // indexing; every other DEFINE form is a leaf.
-        if define_form(node, source).as_deref() == Some("function")
-            && let Some(body) = k::find_child(node, k::BLOCK)
-        {
+        // A function block is walked on its own so its statements are not
+        // recorded twice. Every other clause is walked too: permissions,
+        // value, assert, default, when, then, signup, signin and
+        // authenticate hold the uses that belong to this definition.
+        let function_body = (form.as_deref() == Some("function"))
+            .then(|| k::find_child(node, k::BLOCK))
+            .flatten();
+        if let Some(body) = function_body {
             collect_statements(body, source, lines, uri, origin, analysis);
+        }
+        let mut cursor = node.walk();
+        for child in node.named_children(&mut cursor) {
+            if function_body.is_some_and(|body| body.id() == child.id()) {
+                continue;
+            }
+            collect_statements(child, source, lines, uri, origin, analysis);
         }
         return;
     }
@@ -821,9 +841,115 @@ fn extract_index(
         fields,
         unique,
         options,
+        analyzer: index_analyzer_name(node, source),
         origin,
         location: location(uri, source, lines, node),
     });
+}
+
+/// The identifier after `ANALYZER` in a full-text or search index clause.
+fn index_analyzer_name(node: Node<'_>, source: &str) -> Option<String> {
+    let mut clauses = descendants_of_kind(node, k::FULLTEXT_CLAUSE);
+    clauses.extend(descendants_of_kind(node, k::SEARCH_ANALYZER_CLAUSE));
+    for clause in clauses {
+        let children = k::named_children(clause);
+        for (index, child) in children.iter().enumerate() {
+            if k::is_kw(*child, source, "ANALYZER")
+                && let Some(name) = children
+                    .get(index + 1)
+                    .filter(|next| next.kind() == k::IDENT)
+                    .and_then(|next| text_of(source, *next))
+            {
+                return Some(name);
+            }
+        }
+    }
+    None
+}
+
+/// Record a `DEFINE` whose kind is not one of the eight structured kinds.
+///
+/// The kind is the keyword (`bucket`, `api`, `sequence`, `user`, `model`,
+/// `config`, and whatever else the grammar accepts). Returns whether a name
+/// was found.
+fn extract_other_define(
+    node: Node<'_>,
+    source: &str,
+    lines: &LineIndex,
+    uri: &Uri,
+    analysis: &mut DocumentAnalysis,
+) -> bool {
+    let Some(keyword) = define_form(node, source) else {
+        return false;
+    };
+    let kind = match keyword.as_str() {
+        "ns" => "namespace".to_string(),
+        "db" => "database".to_string(),
+        other => other.to_string(),
+    };
+    let Some(name) = other_define_name(node, source, &keyword) else {
+        return false;
+    };
+    analysis.document_symbols.push(definition_symbol(
+        &format!("{} {name}", kind.to_ascii_uppercase()),
+        SymbolKind::OBJECT,
+        source,
+        lines,
+        node,
+    ));
+    analysis.others.push(crate::semantic::types::OtherDef {
+        kind,
+        name,
+        location: location(uri, source, lines, node),
+    });
+    true
+}
+
+fn other_define_name(node: Node<'_>, source: &str, keyword: &str) -> Option<String> {
+    let children = k::named_children(node);
+    let mut seen_kind = false;
+    let mut model_name: Option<String> = None;
+    for child in &children {
+        let Some(text) = text_of(source, *child) else {
+            continue;
+        };
+        if !seen_kind {
+            if k::is_keyword(*child) && text.eq_ignore_ascii_case(keyword) {
+                seen_kind = true;
+            }
+            continue;
+        }
+        if keyword == "config"
+            && k::is_keyword(*child)
+            && matches!(
+                text.to_ascii_lowercase().as_str(),
+                "graphql" | "api" | "default"
+            )
+        {
+            return Some(text.to_ascii_lowercase());
+        }
+        if keyword == "model" && child.kind() == k::FUNCTION_NAME {
+            model_name = Some(text);
+            continue;
+        }
+        if keyword == "model" && child.kind() == "Version" {
+            return Some(format!("{}{text}", model_name.unwrap_or_default()));
+        }
+        if matches!(
+            child.kind(),
+            k::IDENT | k::VARIABLE_NAME | k::STRING | k::FUNCTION_NAME
+        ) {
+            let name = if child.kind() == k::STRING {
+                unquote(&text)
+            } else {
+                text
+            };
+            if !name.is_empty() {
+                return Some(name);
+            }
+        }
+    }
+    model_name
 }
 
 fn extract_param(
@@ -1312,11 +1438,6 @@ fn record_param_references_and_enclosing(analysis: &mut DocumentAnalysis) {
     let root = analysis.tree.root_node();
     let mut bindings = Vec::new();
     collect_local_bindings(root, root.end_byte(), &analysis.text, &mut bindings);
-    let define_params: std::collections::HashSet<String> = analysis
-        .params
-        .iter()
-        .map(|param| param.name.clone())
-        .collect();
     let mut references = Vec::new();
     collect_param_uses(
         root,
@@ -1324,7 +1445,6 @@ fn record_param_references_and_enclosing(analysis: &mut DocumentAnalysis) {
         &analysis.line_index,
         &analysis.uri,
         &bindings,
-        &define_params,
         &definitions,
         &mut references,
     );
@@ -1455,13 +1575,18 @@ fn resolve_binding<'a>(bindings: &'a [BoundName], name: &str, at: usize) -> Opti
     })
 }
 
+fn builtin_variable(name: &str) -> bool {
+    crate::grammar::SPECIAL_VARIABLES
+        .iter()
+        .any(|(builtin, _)| builtin.eq_ignore_ascii_case(name))
+}
+
 fn collect_param_uses(
     node: Node<'_>,
     source: &str,
     lines: &LineIndex,
     uri: &Uri,
     bindings: &[BoundName],
-    define_params: &std::collections::HashSet<String>,
     definitions: &[(String, ls_types::Range)],
     out: &mut Vec<crate::semantic::types::ParamReference>,
 ) {
@@ -1482,7 +1607,9 @@ fn collect_param_uses(
                         selection_range: range,
                     });
                 }
-            } else if define_params.contains(&name) {
+            } else if !builtin_variable(&name) {
+                // Not bound here and not a built-in, so it is a param use
+                // wherever that param is defined, including another file.
                 out.push(crate::semantic::types::ParamReference {
                     name,
                     enclosing: enclosing_definition(definitions, &range),
@@ -1495,16 +1622,7 @@ fn collect_param_uses(
     }
     let mut cursor = node.walk();
     for child in node.named_children(&mut cursor) {
-        collect_param_uses(
-            child,
-            source,
-            lines,
-            uri,
-            bindings,
-            define_params,
-            definitions,
-            out,
-        );
+        collect_param_uses(child, source, lines, uri, bindings, definitions, out);
     }
 }
 
@@ -1526,6 +1644,10 @@ fn collect_function_references(
             continue;
         }
         let selection_range = lines.range(source, reference.start_byte(), reference.end_byte());
+        analysis.call_sites.push(NamedRange {
+            name: name.clone(),
+            range: selection_range,
+        });
         analysis.references.push(SymbolReference {
             name,
             kind: SymbolKind::FUNCTION,
@@ -1956,16 +2078,66 @@ fn field_assignment_target<'tree>(
 fn collect_field_refs(node: Node<'_>, source: &str, lines: &LineIndex) -> Vec<NamedRange> {
     let mut fields: Vec<NamedRange> = Vec::new();
     for assignment in descendants_of_kind(node, k::FIELD_ASSIGNMENT) {
-        if let Some((name, target)) = field_assignment_target(assignment, source)
-            && !fields.iter().any(|existing| existing.name == name)
-        {
-            fields.push(NamedRange {
-                name,
-                range: lines.range(source, target.start_byte(), target.end_byte()),
-            });
+        if let Some((name, target)) = field_assignment_target(assignment, source) {
+            push_field_ref(&mut fields, name, target, source, lines);
+        }
+    }
+    for kind in [k::CONTENT_CLAUSE, k::MERGE_CLAUSE] {
+        for clause in descendants_of_kind(node, kind) {
+            let Some(value) = first_non_keyword_child(clause) else {
+                continue;
+            };
+            if value.kind() != k::OBJECT {
+                continue;
+            }
+            // Only the object's own keys are fields. A nested object's keys
+            // are values, not fields of the table being written.
+            let content = k::find_child(value, k::OBJECT_CONTENT).unwrap_or(value);
+            for property in k::named_children(content) {
+                if property.kind() != k::OBJECT_PROPERTY {
+                    continue;
+                }
+                let Some(key) = k::named_children(property)
+                    .into_iter()
+                    .find(|child| child.kind() == k::OBJECT_KEY)
+                else {
+                    continue;
+                };
+                let Some(literal) = k::named_children(key).into_iter().next() else {
+                    continue;
+                };
+                if !matches!(literal.kind(), k::KEY_NAME | k::STRING | k::NUMBER) {
+                    continue;
+                }
+                let Some(name) = text_of(source, literal) else {
+                    continue;
+                };
+                let name = if literal.kind() == k::STRING {
+                    unquote(&name)
+                } else {
+                    name
+                };
+                push_field_ref(&mut fields, name, literal, source, lines);
+            }
         }
     }
     fields
+}
+
+fn push_field_ref(
+    fields: &mut Vec<NamedRange>,
+    name: String,
+    target: Node<'_>,
+    source: &str,
+    lines: &LineIndex,
+) {
+    if name.is_empty() || fields.iter().any(|existing| existing.name == name) {
+        return;
+    }
+    fields.push(NamedRange {
+        name,
+        range: lines.range(source, target.start_byte(), target.end_byte()),
+    });
 }
 
 /// Coarse literal typing used by *schema inference* (`SET x = …`,
@@ -3343,6 +3515,126 @@ mod tests {
     }
 
     #[test]
+    fn records_every_other_define_kind() {
+        let analysis = analyze(
+            "DEFINE BUCKET repo BACKEND 'mem' PERMISSIONS NONE;\n\
+             DEFINE API '/health' FOR get THEN { RETURN { ok: true }; };\n\
+             DEFINE SEQUENCE counter BATCH 1 START 0;\n\
+             DEFINE USER tester ON DATABASE PASSWORD 'secret' ROLES OWNER;\n\
+             DEFINE MODEL IF NOT EXISTS ml::embed<1.0.0> PERMISSIONS NONE;\n\
+             DEFINE CONFIG API;\n",
+        );
+        assert!(
+            analysis.syntax_diagnostics.is_empty(),
+            "{:?}",
+            analysis.syntax_diagnostics
+        );
+        let found: Vec<_> = analysis
+            .others
+            .iter()
+            .map(|item| (item.kind.as_str(), item.name.as_str()))
+            .collect();
+        assert_eq!(
+            found,
+            vec![
+                ("bucket", "repo"),
+                ("api", "/health"),
+                ("sequence", "counter"),
+                ("user", "tester"),
+                ("model", "ml::embed<1.0.0>"),
+                ("config", "api"),
+            ]
+        );
+    }
+
+    #[test]
+    fn a_definition_body_owns_the_uses_inside_it() {
+        let analysis = analyze(
+            "DEFINE TABLE person PERMISSIONS FOR select WHERE fn::allowed();\n\
+             DEFINE FIELD name ON person VALUE fn::clean($value);\n\
+             DEFINE EVENT audit ON person THEN { UPDATE log SET kept = true };\n\
+             DEFINE ACCESS account ON DATABASE TYPE RECORD\n\
+             SIGNUP { CREATE user SET name = 'a' }\n\
+             SIGNIN { SELECT * FROM user WHERE name = 'a' };\n\
+             DEFINE BUCKET files PERMISSIONS WHERE fn::has_grant();\n",
+        );
+        assert!(
+            analysis.syntax_diagnostics.is_empty(),
+            "{:?}",
+            analysis.syntax_diagnostics
+        );
+        assert!(analysis.call_sites.iter().any(|site| site.name == "fn::allowed"));
+        assert!(analysis.call_sites.iter().any(|site| site.name == "fn::clean"));
+        assert!(analysis.call_sites.iter().any(|site| site.name == "fn::has_grant"));
+        assert!(analysis.query_facts.iter().any(|fact| {
+            fact.enclosing.as_deref() == Some("person.audit")
+                && fact.target_refs.iter().any(|target| target.name == "log")
+        }));
+        assert!(analysis.query_facts.iter().any(|fact| {
+            fact.enclosing.as_deref() == Some("account")
+                && fact.action == QueryAction::Select
+                && fact.target_refs.iter().any(|target| target.name == "user")
+        }));
+        assert!(
+            analysis
+                .param_references
+                .iter()
+                .all(|reference| reference.name != "$value"),
+            "a built-in is not a param use: {:?}",
+            analysis.param_references
+        );
+    }
+
+    #[test]
+    fn an_unbound_parameter_is_a_use_wherever_it_is_defined() {
+        let analysis = analyze("DEFINE FUNCTION fn::outer() {\n  RETURN $limit;\n};\n");
+        assert!(analysis.param_references.iter().any(|reference| {
+            reference.name == "$limit" && reference.enclosing.as_deref() == Some("fn::outer")
+        }));
+        let built_in = analyze("DEFINE FUNCTION fn::outer() {\n  RETURN $auth;\n};\n");
+        assert!(built_in.param_references.iter().all(|reference| reference.name != "$auth"));
+    }
+
+    #[test]
+    fn an_index_records_its_analyzer() {
+        let analysis = analyze(
+            "DEFINE INDEX body ON person FIELDS body FULLTEXT ANALYZER body_text BM25;\n",
+        );
+        assert!(
+            analysis.syntax_diagnostics.is_empty(),
+            "{:?}",
+            analysis.syntax_diagnostics
+        );
+        assert_eq!(
+            analysis.indexes.first().and_then(|index| index.analyzer.as_deref()),
+            Some("body_text")
+        );
+    }
+
+    #[test]
+    fn content_and_merge_literal_keys_are_field_writes() {
+        let analysis = analyze(
+            "CREATE person CONTENT { name: 'a', age: 1, address: { city: 'x' } };\n\
+             UPDATE person MERGE { \"name\": 'b' };\n\
+             UPDATE person SET kept = true;\n",
+        );
+        assert!(
+            analysis.syntax_diagnostics.is_empty(),
+            "{:?}",
+            analysis.syntax_diagnostics
+        );
+        let names: Vec<_> = analysis
+            .query_facts
+            .iter()
+            .flat_map(|fact| fact.field_refs.iter().map(|field| field.name.as_str()))
+            .collect();
+        assert!(names.contains(&"name"), "{names:?}");
+        assert!(names.contains(&"age"), "{names:?}");
+        assert!(names.contains(&"kept"), "{names:?}");
+        assert!(!names.contains(&"city"), "{names:?}");
+    }
+
+    #[test]
     fn define_model_parses() {
         let analysis = analyze(
             "DEFINE MODEL IF NOT EXISTS ml::insurance<1.0.0> COMMENT 'risk' PERMISSIONS FULL;\nREMOVE MODEL IF EXISTS ml::insurance::prediction<1.0.0>;\n",
@@ -3683,8 +3975,20 @@ mod tests {
 
         let analysis = analyze_document(uri, text, SymbolOrigin::Local).expect("analysis");
 
-        assert_eq!(analysis.tables.len(), 1);
-        assert!(!analysis.tables[0].permissions.is_empty());
+        assert_eq!(
+            analysis
+                .tables
+                .iter()
+                .filter(|table| table.explicit)
+                .count(),
+            1
+        );
+        let person = analysis
+            .tables
+            .iter()
+            .find(|table| table.name == "person")
+            .expect("person");
+        assert!(!person.permissions.is_empty());
         assert_eq!(analysis.events.len(), 1);
         assert_eq!(analysis.events[0].table, "person");
         assert_eq!(analysis.indexes.len(), 1);

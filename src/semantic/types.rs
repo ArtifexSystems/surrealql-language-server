@@ -121,6 +121,9 @@ pub struct IndexDef {
     pub fields: Vec<String>,
     pub unique: bool,
     pub options: Vec<String>,
+    /// The `ANALYZER` a full-text or search index names, when it names one.
+    #[serde(default)]
+    pub analyzer: Option<String>,
     pub origin: SymbolOrigin,
     pub location: Location,
 }
@@ -271,6 +274,19 @@ pub struct SymbolReference {
     pub selection_range: Range,
 }
 
+/// A `DEFINE` kind the graph records by its keyword and name.
+///
+/// Tables, fields, indexes, events, functions, params, accesses and
+/// analyzers keep their own records. Everything else the grammar accepts
+/// (`BUCKET`, `API`, `SEQUENCE`, `USER`, `MODEL`, `CONFIG`, and the rest)
+/// is one of these.
+#[derive(Debug, Clone, PartialEq)]
+pub struct OtherDef {
+    pub kind: String,
+    pub name: String,
+    pub location: Location,
+}
+
 #[derive(Debug, Clone)]
 pub struct DocumentAnalysis {
     pub uri: Uri,
@@ -296,6 +312,9 @@ pub struct DocumentAnalysis {
     pub params: Vec<ParamDef>,
     pub accesses: Vec<AccessDef>,
     pub analyzers: Vec<AnalyzerDef>,
+    pub others: Vec<OtherDef>,
+    /// Every `fn::` call site. The function being defined is not one.
+    pub call_sites: Vec<NamedRange>,
     pub query_facts: Vec<QueryFact>,
     /// Uses of `DEFINE PARAM` names and of function parameters.
     pub param_references: Vec<ParamReference>,
