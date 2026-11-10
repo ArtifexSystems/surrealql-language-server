@@ -216,6 +216,15 @@ pub struct NamedRange {
     pub range: Range,
 }
 
+/// A use the graph records by kind: a sequence, a defined type, an
+/// extension call, or something a `DEFINE CONFIG` names.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Mention {
+    pub kind: String,
+    pub name: String,
+    pub range: Range,
+}
+
 /// Why a statement's target table list is (or isn't) statically known.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum TargetResolution {
@@ -315,6 +324,9 @@ pub struct DocumentAnalysis {
     pub others: Vec<OtherDef>,
     /// Every `fn::` call site. The function being defined is not one.
     pub call_sites: Vec<NamedRange>,
+    /// Uses that are not `fn::` calls: sequence names, defined types,
+    /// extension calls, and what a config names.
+    pub mentions: Vec<Mention>,
     pub query_facts: Vec<QueryFact>,
     /// Uses of `DEFINE PARAM` names and of function parameters.
     pub param_references: Vec<ParamReference>,

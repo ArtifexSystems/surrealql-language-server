@@ -180,11 +180,11 @@ pub fn nearest(name: &str) -> Option<&'static str> {
 
 /// Names introduced by `DEFINE TYPE` in this file, lowercased.
 ///
-/// The grammar has no `DEFINE TYPE` alternative, so the statement arrives as an
-/// error node and the name never becomes a definition the tree can walk. The
-/// text is the authority the engine uses: `DEFINE TYPE`, then optional
-/// `OVERWRITE` or `IF NOT EXISTS`, then the name. A name inside a string or a
-/// comment is not a definition.
+/// `DEFINE TYPE` is a definition the tree records. This scan still names the
+/// type from the text, so a diagnostic can stay quiet for a name this file
+/// defines even when the rest of the statement did not parse. The text is
+/// `DEFINE TYPE`, then optional `OVERWRITE` or `IF NOT EXISTS`, then the name.
+/// A name inside a string or a comment is not a definition.
 pub fn defined_type_names(source: &str) -> std::collections::HashSet<String> {
     let bytes = source.as_bytes();
     let mut names = std::collections::HashSet::new();

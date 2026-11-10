@@ -70,6 +70,7 @@ pub fn analyze_document_with_limit(
         analyzers: Vec::new(),
         others: Vec::new(),
         call_sites: Vec::new(),
+        mentions: Vec::new(),
         query_facts: Vec::with_capacity(statement_hint),
         param_references: Vec::new(),
         // Most documents hold no RELATE at all, so this one starts empty
@@ -86,6 +87,7 @@ pub fn analyze_document_with_limit(
     // an IF condition), and collecting per-statement both missed those
     // and risked double-counting once containers started descending.
     collect_function_references(root, text, &line_index, &uri, &mut analysis);
+    collect_mentions(root, text, &line_index, &mut analysis);
 
     // Syntax diagnostics run after extraction so the keyword-typo
     // hint can skip names that are identifiers in this document
@@ -1654,6 +1656,197 @@ fn collect_function_references(
             location: Location::new(uri.clone(), selection_range),
             selection_range,
         });
+    }
+}
+
+fn collect_mentions(node: Node<'_>, source: &str, lines: &LineIndex, analysis: &mut DocumentAnalysis) {
+    collect_sequence_mentions(node, source, lines, analysis);
+    collect_type_mentions(node, source, lines, analysis);
+    collect_extension_calls(node, source, lines, analysis);
+    collect_config_mentions(node, source, lines, analysis);
+}
+
+fn push_mention(
+    analysis: &mut DocumentAnalysis,
+    kind: &str,
+    name: String,
+    range: ls_types::Range,
+) {
+    analysis.mentions.push(crate::semantic::types::Mention {
+        kind: kind.to_string(),
+        name,
+        range,
+    });
+}
+
+/// `sequence::nextval('name')` names that sequence. A computed argument
+/// does not: the name is not in the text.
+fn collect_sequence_mentions(
+    node: Node<'_>,
+    source: &str,
+    lines: &LineIndex,
+    analysis: &mut DocumentAnalysis,
+) {
+    for call in descendants_of_kind(node, k::FUNCTION_CALL) {
+        let children = k::named_children(call);
+        let Some(function) = children
+            .iter()
+            .find(|child| child.kind() == k::FUNCTION_NAME)
+            .and_then(|child| text_of(source, *child))
+        else {
+            continue;
+        };
+        if !function.eq_ignore_ascii_case("sequence::nextval") {
+            continue;
+        }
+        let Some(args) = children.iter().find(|child| child.kind() == "ArgumentList") else {
+            continue;
+        };
+        let values: Vec<_> = k::named_children(*args)
+            .into_iter()
+            .filter(|child| !k::is_keyword(*child))
+            .collect();
+        let [only] = values.as_slice() else {
+            continue;
+        };
+        if only.kind() != k::STRING {
+            continue;
+        }
+        let Some(raw) = text_of(source, *only) else {
+            continue;
+        };
+        let name = unquote(&raw);
+        if name.is_empty() {
+            continue;
+        }
+        let range = lines.range(source, only.start_byte(), only.end_byte());
+        push_mention(analysis, "sequence", name, range);
+    }
+}
+
+/// A field `TYPE` or a function parameter type that names a defined type.
+/// Builtins, `record<person>`, and a record-id component label are not uses.
+fn collect_type_mentions(
+    node: Node<'_>,
+    source: &str,
+    lines: &LineIndex,
+    analysis: &mut DocumentAnalysis,
+) {
+    let mut owners = descendants_of_kind(node, k::TYPE_CLAUSE);
+    owners.extend(descendants_of_kind(node, k::PARAM_DEFINITION));
+    for owner in owners {
+        for type_name in descendants_of_kind(owner, k::TYPE_NAME) {
+            let Some(name) = text_of(source, type_name) else {
+                continue;
+            };
+            if name.is_empty()
+                || type_name::is_known(&name)
+                || names_a_foreign_argument(source, type_name)
+                || is_named_record_id_component(source, type_name)
+                || has_error_ancestor(type_name)
+            {
+                continue;
+            }
+            let range = lines.range(source, type_name.start_byte(), type_name.end_byte());
+            push_mention(analysis, "type", name, range);
+        }
+    }
+}
+
+/// `ext::name::function()` and `mod::name::function()` call into an extension.
+fn collect_extension_calls(
+    node: Node<'_>,
+    source: &str,
+    lines: &LineIndex,
+    analysis: &mut DocumentAnalysis,
+) {
+    for call in descendants_of_kind(node, k::FUNCTION_CALL) {
+        let Some(name_node) = k::named_children(call)
+            .into_iter()
+            .find(|child| child.kind() == k::FUNCTION_NAME)
+        else {
+            continue;
+        };
+        let Some(name) = text_of(source, name_node) else {
+            continue;
+        };
+        let lower = name.to_ascii_lowercase();
+        if !lower.starts_with("ext::") && !lower.starts_with("mod::") {
+            continue;
+        }
+        let range = lines.range(source, name_node.start_byte(), name_node.end_byte());
+        push_mention(analysis, "call", name, range);
+    }
+}
+
+/// Tables, functions, middleware, and the namespace and database a
+/// `DEFINE CONFIG` names.
+fn collect_config_mentions(
+    node: Node<'_>,
+    source: &str,
+    lines: &LineIndex,
+    analysis: &mut DocumentAnalysis,
+) {
+    for statement in descendants_of_kind(node, k::DEFINE_STATEMENT) {
+        if define_form(statement, source).as_deref() != Some("config") {
+            continue;
+        }
+        let mut listing: Option<&str> = None;
+        for child in k::named_children(statement) {
+            if k::is_kw(child, source, "TABLES") {
+                listing = Some("table");
+                continue;
+            }
+            if k::is_kw(child, source, "FUNCTIONS") {
+                listing = Some("call");
+                continue;
+            }
+            if k::is_kw(child, source, "NAMESPACE") || k::is_kw(child, source, "NS") {
+                listing = Some("namespace");
+                continue;
+            }
+            if k::is_kw(child, source, "DATABASE") || k::is_kw(child, source, "DB") {
+                listing = Some("database");
+                continue;
+            }
+            if k::is_kw(child, source, "INCLUDE") || k::is_kw(child, source, "EXCLUDE") {
+                continue;
+            }
+            if k::is_kw(child, source, "AUTO") || k::is_kw(child, source, "NONE") {
+                listing = None;
+                continue;
+            }
+            let Some(kind) = listing else {
+                continue;
+            };
+            let named = match kind {
+                "table" => child.kind() == k::IDENT,
+                "call" => child.kind() == k::FUNCTION_NAME,
+                "namespace" | "database" => child.kind() == k::IDENT,
+                _ => false,
+            };
+            if !named {
+                continue;
+            }
+            let Some(name) = text_of(source, child) else {
+                continue;
+            };
+            let range = lines.range(source, child.start_byte(), child.end_byte());
+            push_mention(analysis, kind, name, range);
+            if kind == "namespace" || kind == "database" {
+                listing = None;
+            }
+        }
+        // MIDDLEWARE sits inside ApiOptions, not as a direct child of the
+        // statement. Each function it names is a call.
+        for clause in descendants_of_kind(statement, k::MIDDLEWARE_CLAUSE) {
+            for name_node in descendants_of_kind(clause, k::FUNCTION_NAME) {
+                if let Some(name) = text_of(source, name_node) {
+                    let range = lines.range(source, name_node.start_byte(), name_node.end_byte());
+                    push_mention(analysis, "call", name, range);
+                }
+            }
+        }
     }
 }
 
@@ -3632,6 +3825,121 @@ mod tests {
         assert!(names.contains(&"age"), "{names:?}");
         assert!(names.contains(&"kept"), "{names:?}");
         assert!(!names.contains(&"city"), "{names:?}");
+    }
+
+    #[test]
+    fn a_type_and_an_extension_are_definitions() {
+        let analysis = analyze(
+            "DEFINE TYPE OVERWRITE email AS string ASSERT string::is_email($value) PERMISSIONS FULL;\n\
+             DEFINE TYPE mood AS 'low' | 'medium' | 'high';\n\
+             DEFINE EXTENSION IF NOT EXISTS ext::demo FROM \"extensions:/demo.surli\" UNSIGNED;\n\
+             DEFINE MODULE mod::old FROM \"extensions:/old.surli\" UNSIGNED;\n",
+        );
+        assert!(
+            analysis.syntax_diagnostics.is_empty(),
+            "{:?}",
+            analysis.syntax_diagnostics
+        );
+        let found: Vec<_> = analysis
+            .others
+            .iter()
+            .map(|item| (item.kind.as_str(), item.name.as_str()))
+            .collect();
+        assert!(found.contains(&("type", "email")), "{found:?}");
+        assert!(found.contains(&("type", "mood")), "{found:?}");
+        assert!(found.contains(&("extension", "ext::demo")), "{found:?}");
+        assert!(found.contains(&("module", "mod::old")), "{found:?}");
+    }
+
+    #[test]
+    fn sequence_nextval_of_a_literal_is_a_sequence_use() {
+        let analysis = analyze(
+            "DEFINE FIELD reference ON article TYPE int DEFAULT sequence::nextval('article_news');\n\
+             DEFINE FUNCTION fn::dynamic() { RETURN sequence::nextval('article_' + $this.category); };\n",
+        );
+        assert!(
+            analysis.syntax_diagnostics.is_empty(),
+            "{:?}",
+            analysis.syntax_diagnostics
+        );
+        assert!(analysis.mentions.iter().any(|mention| {
+            mention.kind == "sequence" && mention.name == "article_news"
+        }));
+        assert!(analysis.mentions.iter().all(|mention| mention.name != "article_"));
+    }
+
+    #[test]
+    fn a_field_or_param_type_names_a_defined_type() {
+        let analysis = analyze(
+            "DEFINE TYPE email AS string;\n\
+             DEFINE TYPE user_id AS string;\n\
+             DEFINE FIELD email ON person TYPE option<email>;\n\
+             DEFINE FIELD home ON person TYPE record<person>;\n\
+             DEFINE FUNCTION fn::check($id: user_id) { RETURN $id; };\n",
+        );
+        assert!(
+            analysis.syntax_diagnostics.is_empty(),
+            "{:?}",
+            analysis.syntax_diagnostics
+        );
+        let types: Vec<_> = analysis
+            .mentions
+            .iter()
+            .filter(|mention| mention.kind == "type")
+            .map(|mention| mention.name.as_str())
+            .collect();
+        assert!(types.contains(&"email"), "{types:?}");
+        assert!(types.contains(&"user_id"), "{types:?}");
+        assert!(!types.contains(&"person"), "{types:?}");
+        assert!(!types.contains(&"option"), "{types:?}");
+        assert!(!types.contains(&"string"), "{types:?}");
+    }
+
+    #[test]
+    fn an_extension_function_call_is_a_call() {
+        let analysis = analyze(
+            "DEFINE FUNCTION fn::greet() { RETURN ext::demo::greet('Ada'); };\n\
+             DEFINE FUNCTION fn::legacy() { RETURN mod::old::greet(); };\n",
+        );
+        assert!(
+            analysis.syntax_diagnostics.is_empty(),
+            "{:?}",
+            analysis.syntax_diagnostics
+        );
+        let calls: Vec<_> = analysis
+            .mentions
+            .iter()
+            .filter(|mention| mention.kind == "call")
+            .map(|mention| mention.name.as_str())
+            .collect();
+        assert!(calls.contains(&"ext::demo::greet"), "{calls:?}");
+        assert!(calls.contains(&"mod::old::greet"), "{calls:?}");
+    }
+
+    #[test]
+    fn a_config_records_what_it_configures() {
+        let analysis = analyze(
+            "DEFINE CONFIG GRAPHQL TABLES INCLUDE person, post FUNCTIONS INCLUDE fn::visible;\n\
+             DEFINE CONFIG API MIDDLEWARE api::timeout(10s), fn::limit();\n\
+             DEFINE CONFIG DEFAULT NAMESPACE app DATABASE main;\n",
+        );
+        assert!(
+            analysis.syntax_diagnostics.is_empty(),
+            "{:?}",
+            analysis.syntax_diagnostics
+        );
+        let found: Vec<_> = analysis
+            .mentions
+            .iter()
+            .map(|mention| (mention.kind.as_str(), mention.name.as_str()))
+            .collect();
+        assert!(found.contains(&("table", "person")), "{found:?}");
+        assert!(found.contains(&("table", "post")), "{found:?}");
+        assert!(found.contains(&("call", "fn::visible")), "{found:?}");
+        assert!(found.contains(&("call", "api::timeout")), "{found:?}");
+        assert!(found.contains(&("call", "fn::limit")), "{found:?}");
+        assert!(found.contains(&("namespace", "app")), "{found:?}");
+        assert!(found.contains(&("database", "main")), "{found:?}");
     }
 
     #[test]

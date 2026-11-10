@@ -1035,6 +1035,14 @@ export default grammar({
 					seq(alias($._kw_config, $.Keyword), $._defineConfigOptions),
 					seq(alias($._kw_api, $.Keyword), $._defineApiOptions),
 					seq(alias($._kw_bucket, $.Keyword), $._defineBucketOptions),
+					seq(alias($._kw_type, $.Keyword), $._defineTypeOptions),
+					seq(
+						choice(
+							alias($._kw_extension, $.Keyword),
+							alias($._kw_module, $.Keyword),
+						),
+						$._defineExtensionOptions,
+					),
 				),
 			),
 		AccessDefinition: ($) =>
@@ -1352,6 +1360,75 @@ export default grammar({
 					),
 				),
 			),
+
+		// DEFINE TYPE name AS <type> [CONSTRAINT name] ASSERT expr ...
+		// DEFAULT, SQL TYPE POSTGRESQL, COMMENT and PERMISSIONS may follow
+		// in any order. The engine takes the same clauses.
+		_defineTypeOptions: ($) =>
+			seq(
+				optional(choice($.IfNotExistsClause, $.OverwriteClause)),
+				$.Ident,
+				alias($._kw_as, $.Keyword),
+				$._type,
+				repeat(
+					choice(
+						$.TypeConstraintClause,
+						$.DefaultClause,
+						$.SqlTypeClause,
+						$.CommentClause,
+						$.PermissionsBasicClause,
+					),
+				),
+			),
+		TypeConstraintClause: ($) =>
+			seq(
+				optional(
+					seq(alias($._kw_constraint, $.Keyword), $.Ident),
+				),
+				alias($._kw_assert, $.Keyword),
+				$._value,
+			),
+		SqlTypeClause: ($) =>
+			seq(
+				alias($._kw_sql, $.Keyword),
+				alias($._kw_type, $.Keyword),
+				alias($._kw_postgresql, $.Keyword),
+				$.String,
+			),
+
+		// DEFINE EXTENSION ext::name FROM <file> [DIGEST] [SIGNER | UNSIGNED]
+		// [CAPABILITIES] [BINDINGS] [PERMISSIONS] [COMMENT].
+		// DEFINE MODULE is the name this statement had before SurrealDB 4.
+		_defineExtensionOptions: ($) =>
+			seq(
+				optional(choice($.IfNotExistsClause, $.OverwriteClause)),
+				$.FunctionName,
+				$.ExtensionFromClause,
+				repeat(
+					choice(
+						$.ExtensionDigestClause,
+						$.ExtensionSignerClause,
+						alias($._kw_unsigned, $.Keyword),
+						$.ExtensionCapabilitiesClause,
+						$.ExtensionBindingsClause,
+						$.PermissionsBasicClause,
+						$.CommentClause,
+					),
+				),
+			),
+		ExtensionFromClause: ($) =>
+			seq(
+				alias($._kw_from, $.Keyword),
+				choice(seq($.FunctionName, optional($.Version)), $._value),
+			),
+		ExtensionDigestClause: ($) =>
+			seq(alias($._kw_digest, $.Keyword), $.String),
+		ExtensionSignerClause: ($) =>
+			seq(alias($._kw_signer, $.Keyword), $.Object),
+		ExtensionCapabilitiesClause: ($) =>
+			seq(alias($._kw_capabilities, $.Keyword), $.Object),
+		ExtensionBindingsClause: ($) =>
+			seq(alias($._kw_bindings, $.Keyword), $.Object),
 
 		// CREATE
 		CreateStatement: ($) =>
@@ -3645,6 +3722,15 @@ export default grammar({
 		_kw_bearer: ($) => kw('bearer'),
 		_kw_grant: ($) => kw('grant'),
 		_kw_module: ($) => kw('module'),
+		_kw_extension: ($) => kw('extension'),
+		_kw_unsigned: ($) => kw('unsigned'),
+		_kw_digest: ($) => kw('digest'),
+		_kw_signer: ($) => kw('signer'),
+		_kw_capabilities: ($) => kw('capabilities'),
+		_kw_bindings: ($) => kw('bindings'),
+		_kw_constraint: ($) => kw('constraint'),
+		_kw_sql: ($) => kw('sql'),
+		_kw_postgresql: ($) => kw('postgresql'),
 		_kw_purge: ($) => kw('purge'),
 		_kw_revoke: ($) => kw('revoke'),
 		_kw_revoked: ($) => kw('revoked'),
