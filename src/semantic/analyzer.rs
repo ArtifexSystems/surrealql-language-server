@@ -3943,6 +3943,18 @@ mod tests {
     }
 
     #[test]
+    fn escaped_strings_parse() {
+        let analysis = analyze(
+            "DEFINE FIELD path ON person TYPE string ASSERT $value = '\\\\' OR $value = '\\n';\n",
+        );
+        assert!(
+            analysis.syntax_diagnostics.is_empty(),
+            "{:?}",
+            analysis.syntax_diagnostics
+        );
+    }
+
+    #[test]
     fn define_model_parses() {
         let analysis = analyze(
             "DEFINE MODEL IF NOT EXISTS ml::insurance<1.0.0> COMMENT 'risk' PERMISSIONS FULL;\nREMOVE MODEL IF EXISTS ml::insurance::prediction<1.0.0>;\n",
